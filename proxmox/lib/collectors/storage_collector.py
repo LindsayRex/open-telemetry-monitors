@@ -108,8 +108,9 @@ def collect_disk_smart_metrics(smart_metrics=None):
         physical_disks = [disk["name"] for disk in disks if disk["type"] == "disk"]
         
         for disk in physical_disks:
-            # Skip loop, ram, and other non-physical devices
-            if disk.startswith(('loop', 'ram', 'sr')):
+            # Skip loop, ram, sr devices, and ZFS virtual devices (zd*)
+            if disk.startswith(('loop', 'ram', 'sr', 'zd')):
+                logger.debug(f"Skipping non-physical or unsupported device: /dev/{disk}")
                 continue
                 
             # Get SMART data in JSON format

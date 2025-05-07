@@ -89,12 +89,12 @@ def collect_system_metrics(cpu_usage=None, memory_usage=None, memory_total=None,
                 
                 logger.info(f"Node Uptime: {uptime_seconds/(60*60*24):.1f} days")
                 
-                # Get network metrics
-                try:
-                    net_data = collect_network_metrics(node_labels, net_in_bytes, net_out_bytes)
-                    system_metrics['network'] = net_data
-                except Exception as e:
-                    logger.error(f"Error collecting network metrics: {e}")
+                # Network metrics collection disabled
+                # try:
+                #     net_data = collect_network_metrics(node_labels, net_in_bytes, net_out_bytes)
+                #     system_metrics['network'] = net_data
+                # except Exception as e:
+                #     logger.error(f"Error collecting network metrics: {e}")
                 
                 # Get disk I/O metrics
                 try:

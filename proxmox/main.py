@@ -11,6 +11,7 @@ sys.path.append('/opt/proxmox-otel/venv/lib/python3.11/site-packages')
 sys.path.append('/opt/proxmox-otel')
 
 from opentelemetry import metrics
+from opentelemetry import trace
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
@@ -18,10 +19,14 @@ from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry._logs import set_logger_provider, get_logger
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 # Import our configuration and collectors
 from lib.config import (
-    logger, resource, OTEL_METRICS_ENDPOINT, OTEL_LOGS_ENDPOINT,
+    logger, resource, OTEL_METRICS_ENDPOINT, OTEL_LOGS_ENDPOINT, OTEL_TRACES_ENDPOINT,
     COLLECTION_INTERVAL_SECONDS, LOG_COLLECTION_INTERVAL_SECONDS
 )
 
@@ -36,7 +41,7 @@ from lib.log_collectors import (
 )
 
 def setup_opentelemetry():
-    """Set up OpenTelemetry exporters for metrics and logs."""
+    """Set up OpenTelemetry exporters for metrics, logs, and traces."""
     # Setup OTLP HTTP exporter for metrics
     metrics_exporter = OTLPMetricExporter(endpoint=OTEL_METRICS_ENDPOINT)
     reader = PeriodicExportingMetricReader(
@@ -52,6 +57,13 @@ def setup_opentelemetry():
     log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
     set_logger_provider(log_provider)
     logger_otel = get_logger("proxmox.logs")
+    
+    # Setup OTLP HTTP exporter for traces
+    trace_exporter = OTLPSpanExporter(endpoint=OTEL_TRACES_ENDPOINT)
+    tracer_provider = TracerProvider(resource=resource)
+    tracer_provider.add_span_processor(BatchSpanProcessor(trace_exporter))
+    trace.set_tracer_provider(tracer_provider)
+    tracer = trace.get_tracer("proxmox.kernel")
     
     # Create a meter and define metrics
     meter = metrics.get_meter("proxmox.metrics")
@@ -106,17 +118,17 @@ def setup_opentelemetry():
             unit="bytes"
         ),
         
-        # Network metrics
-        'net_in_bytes': meter.create_gauge(
-            name="proxmox_net_in_bytes",
-            description="Network input bytes",
-            unit="bytes"
-        ),
-        'net_out_bytes': meter.create_gauge(
-            name="proxmox_net_out_bytes",
-            description="Network output bytes",
-            unit="bytes"
-        ),
+        # Network metrics disabled
+        # 'net_in_bytes': meter.create_gauge(
+        #     name="proxmox_net_in_bytes",
+        #     description="Network input bytes",
+        #     unit="bytes"
+        # ),
+        # 'net_out_bytes': meter.create_gauge(
+        #     name="proxmox_net_out_bytes",
+        #     description="Network output bytes",
+        #     unit="bytes"
+        # ),
         
         # Node uptime
         'node_uptime': meter.create_gauge(
@@ -184,7 +196,7 @@ def setup_opentelemetry():
         )
     }
     
-    return metrics_dict, logger_otel
+    return metrics_dict, logger_otel, tracer
 
 def log_collection_thread(logger_otel):
     """Thread function for continuous log collection."""
@@ -249,7 +261,7 @@ def main():
     logger.info("Starting Proxmox OpenTelemetry Monitoring")
     
     # Set up OpenTelemetry
-    metrics_dict, logger_otel = setup_opentelemetry()
+    metrics_dict, logger_otel, tracer = setup_opentelemetry()
     
     # Start the log collection in a separate thread
     log_thread = threading.Thread(
@@ -262,52 +274,65 @@ def main():
     # Main monitoring loop
     while True:
         try:
-            # Collect system metrics
-            collect_system_metrics(
-                cpu_usage=metrics_dict['cpu_usage'],
-                memory_usage=metrics_dict['memory_usage'],
-                memory_total=metrics_dict['memory_total'],
-                memory_used=metrics_dict['memory_used'],
-                node_uptime=metrics_dict['node_uptime'],
-                disk_io_read=metrics_dict['disk_io_read'],
-                disk_io_write=metrics_dict['disk_io_write'],
-                net_in_bytes=metrics_dict['net_in_bytes'],
-                net_out_bytes=metrics_dict['net_out_bytes']
-            )
-            
-            # Collect storage metrics
-            collect_storage_metrics(
-                storage_status=metrics_dict['storage_status'],
-                storage_usage=metrics_dict['storage_usage'],
-                storage_used=metrics_dict['storage_used'],
-                storage_total=metrics_dict['storage_total']
-            )
-            
-            # Collect SMART disk metrics
-            collect_disk_smart_metrics(
-                smart_metrics=metrics_dict['smart_metrics']
-            )
-            
-            # Collect VM metrics
-            collect_vm_metrics(
-                vm_status=metrics_dict['vm_status'],
-                vm_cpu_usage=metrics_dict['vm_cpu_usage'],
-                vm_memory_usage=metrics_dict['vm_memory_usage']
-            )
-            
-            # Collect temperature metrics with enhanced temperature monitoring
-            collect_temperature_metrics(
-                metrics_dict['temperature'],
-                logger_otel
-            )
-            
-            # Collect CPU frequency metrics
-            collect_cpu_frequency_metrics(
-                metrics_dict['cpu_frequency'],
-                logger_otel
-            )
-            
-            logger.info(f"Metrics collected and sent to {OTEL_METRICS_ENDPOINT}")
+            # Create a monitoring cycle span to track overall collection process
+            with tracer.start_as_current_span("monitoring_cycle") as monitoring_span:
+                monitoring_span.set_attribute("collection.timestamp", time.time())
+                
+                # Collect system metrics
+                with tracer.start_as_current_span("system_metrics_collection") as span:
+                    collect_system_metrics(
+                        cpu_usage=metrics_dict['cpu_usage'],
+                        memory_usage=metrics_dict['memory_usage'],
+                        memory_total=metrics_dict['memory_total'],
+                        memory_used=metrics_dict['memory_used'],
+                        node_uptime=metrics_dict['node_uptime'],
+                        disk_io_read=metrics_dict['disk_io_read'],
+                        disk_io_write=metrics_dict['disk_io_write']
+                    )
+                    span.set_attribute("collector.name", "system")
+                
+                # Collect storage metrics
+                with tracer.start_as_current_span("storage_metrics_collection") as span:
+                    collect_storage_metrics(
+                        storage_status=metrics_dict['storage_status'],
+                        storage_usage=metrics_dict['storage_usage'],
+                        storage_used=metrics_dict['storage_used'],
+                        storage_total=metrics_dict['storage_total']
+                    )
+                    span.set_attribute("collector.name", "storage")
+                
+                # Collect SMART disk metrics
+                with tracer.start_as_current_span("smart_metrics_collection") as span:
+                    collect_disk_smart_metrics(
+                        smart_metrics=metrics_dict['smart_metrics']
+                    )
+                    span.set_attribute("collector.name", "smart")
+                
+                # Collect VM metrics
+                with tracer.start_as_current_span("vm_metrics_collection") as span:
+                    collect_vm_metrics(
+                        vm_status=metrics_dict['vm_status'],
+                        vm_cpu_usage=metrics_dict['vm_cpu_usage'],
+                        vm_memory_usage=metrics_dict['vm_memory_usage']
+                    )
+                    span.set_attribute("collector.name", "vm")
+                
+                # Collect temperature metrics with enhanced temperature monitoring
+                with tracer.start_as_current_span("temperature_metrics_collection") as span:
+                    collect_temperature_metrics(
+                        metrics_dict['temperature'],
+                        logger_otel
+                    )
+                    span.set_attribute("collector.name", "temperature")
+                
+                # CPU frequency metrics collection disabled
+                # collect_cpu_frequency_metrics(
+                #     metrics_dict['cpu_frequency'],
+                #     logger_otel
+                # )
+                
+                logger.info(f"Metrics collected and sent to {OTEL_METRICS_ENDPOINT}")
+                logger.info(f"Traces sent to {OTEL_TRACES_ENDPOINT}")
             
             # Wait for the next collection interval
             time.sleep(COLLECTION_INTERVAL_SECONDS)

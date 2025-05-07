@@ -19,6 +19,7 @@ logger = logging.getLogger("proxmox-otel")
 # OpenTelemetry server configuration
 OTEL_METRICS_ENDPOINT = "http://192.168.0.185:4318/v1/metrics"
 OTEL_LOGS_ENDPOINT = "http://192.168.0.185:4318/v1/logs"
+OTEL_TRACES_ENDPOINT = "http://192.168.0.185:4318/v1/traces"  # Endpoint for Tempo tracing
 COLLECTION_INTERVAL_SECONDS = 30  # How often to collect and send metrics
 LOG_COLLECTION_INTERVAL_SECONDS = 60  # How often to collect and send logs
 

@@ -67,68 +67,45 @@ def collect_and_send_journal_logs(logger_otel):
     since_time = datetime.fromtimestamp(last_journal_timestamp / 1000000).strftime('%Y-%m-%d %H:%M:%S')
     
     # Create a filter for the services we want to monitor
-    services_filter = " ".join([f"_SYSTEMD_UNIT={service}" for service in JOURNAL_SERVICES])
+    services_filter = ""
+    if JOURNAL_SERVICES:
+        services_filter = " ".join([f"-u {service}" for service in JOURNAL_SERVICES])
     
-    # Run journalctl with JSON output for easier parsing
-    journal_cmd = f"journalctl -S '{since_time}' -o json"
-    if services_filter:
-        journal_cmd += f" {services_filter}"
+    # Run journalctl with output format that matches syslog
+    # We use the short-precise format which includes timestamp, hostname, service name, and pid
+    journal_cmd = f"journalctl -S '{since_time}' --no-pager -o short-precise {services_filter}"
     
     journal_output = run_command(journal_cmd)
     
     if journal_output:
-        # journalctl with -o json outputs one JSON object per line
+        # Process each line from journalctl
         for line in journal_output.strip().split('\n'):
             if not line:
                 continue
                 
             try:
-                entry = json.loads(line)
+                # Parse the syslog-formatted line
+                # Example format: May 07 22:05:18 pmox vsce-sign[130821]: Primary signature status: OK
                 
-                # Extract the timestamp (in microseconds)
-                timestamp = int(entry.get('__REALTIME_TIMESTAMP', '0'))
-                if timestamp > last_journal_timestamp:
-                    last_journal_timestamp = timestamp
-                
-                # Convert to nanoseconds for OpenTelemetry
-                otel_timestamp = timestamp * 1000
-                
-                # Extract severity
-                priority = int(entry.get('PRIORITY', '6'))
-                if priority <= 3:
-                    severity = "ERROR"
-                elif priority == 4:
-                    severity = "WARN"
-                elif priority == 5 or priority == 6:
-                    severity = "INFO"
-                else:
-                    severity = "DEBUG"
-                
-                # Extract the service name
-                service_name = entry.get('_SYSTEMD_UNIT', 'unknown')
-                
-                # Get the log message
-                message = entry.get('MESSAGE', '')
-                
+                # Skip lines that contain CPU/system monitoring data
+                if any(x in line.lower() for x in ["throttled to", "frequency", "cpu core"]):
+                    continue
+                    
                 # Create and emit the log record
                 if logger_otel:
                     log_record = create_log_record(
-                        timestamp=otel_timestamp,
-                        body=message,
-                        severity=severity,
+                        timestamp=int(time.time() * 1e9),  # Current time in nanoseconds
+                        body=line,  # Use the full syslog-formatted line from journalctl
+                        severity="INFO",  # Default severity
                         attributes={
                             "log.source": "journal",
-                            "service.name": service_name,
-                            "hostname": entry.get('_HOSTNAME', ''),
-                            "pid": entry.get('_PID', ''),
-                            "syslog_identifier": entry.get('SYSLOG_IDENTIFIER', '')
+                            "format": "syslog"
                         }
                     )
                     logger_otel.emit(log_record)
                 
-            except (json.JSONDecodeError, ValueError) as e:
-                logger.error(f"Error parsing journal entry: {e}")
+            except Exception as e:
+                logger.error(f"Error processing journal entry: {e}")
     
-    # Always update the timestamp so we don't get stuck
-    if last_journal_timestamp == 0:
-        last_journal_timestamp = int(datetime.now().timestamp() * 1000000)
+    # Update the timestamp so we don't get stuck
+    last_journal_timestamp = int(datetime.now().timestamp() * 1000000)
