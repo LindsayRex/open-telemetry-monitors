@@ -226,7 +226,7 @@ def collect_disk_io_metrics(node_labels, disk_io_read=None, disk_io_write=None):
         # Create device-specific labels
         device_labels = dict(node_labels, **{"device": device})
         
-        # Send bytes metrics
+        # Send bytes metrics if provided (for backward compatibility)
         if disk_io_read:
             disk_io_read.set(bytes_read, device_labels)
         if disk_io_write:

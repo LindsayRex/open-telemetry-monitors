@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
 Temperature metrics collector for Proxmox OpenTelemetry Monitoring
+
+This module collects temperature data from various sensors including:
+- CPU packages and cores (including multi-socket systems)
+- NVMe drives
+- ACPI thermal zones
+- Motherboard sensors (including Gigabyte WMI)
+- Other miscellaneous temperature sensors
 """
 import json
 import time
@@ -28,105 +35,194 @@ def collect_temperature_metrics(temperature_gauge, logger_otel):
         for adapter_name, adapter_data in sensors_data.items():
             # CPU cores temperature (coretemp)
             if "coretemp" in adapter_name:
-                # Process CPU Package temperature
-                if "Package id 0" in adapter_data:
-                    package_data = adapter_data["Package id 0"]
-                    # Find the temperature input key (usually temp1_input)
-                    temp_key = next((k for k in package_data.keys() if k.endswith("_input") and k.startswith("temp")), None)
-                    
-                    if temp_key:
-                        package_temp = package_data.get(temp_key, 0)
-                        # Find max and crit temps
-                        max_key = temp_key.replace("_input", "_max")
-                        crit_key = temp_key.replace("_input", "_crit")
-                        
-                        package_high = package_data.get(max_key, 85.0)
-                        package_crit = package_data.get(crit_key, 105.0)
-                        
-                        # Set metric
-                        if temperature_gauge:
-                            temperature_gauge.set(package_temp, {
-                                "source": "cpu",
-                                "type": "package",
-                                "name": "package_id_0",
-                                "high": str(package_high),
-                                "critical": str(package_crit)
-                            })
-                        
-                        temp_metrics["cpu_package"] = {
-                            "temperature": package_temp,
-                            "high": package_high,
-                            "critical": package_crit
-                        }
-                        
-                        logger.info(f"CPU Package: {package_temp}°C (High: {package_high}°C, Critical: {package_crit}°C)")
-                        
-                        # Alert on critical temperature
-                        if package_temp >= package_crit - TEMP_CRITICAL_THRESHOLD:
-                            if logger_otel:
-                                log_record = create_log_record(
-                                    timestamp=int(time.time() * 1e9),
-                                    body=f"ALERT: CPU package temperature critical: {package_temp}°C",
-                                    severity="ERROR",
-                                    attributes={
-                                        "event.type": "alert",
-                                        "sensor": "cpu_package",
-                                        "temperature": package_temp,
-                                        "critical": package_crit
-                                    }
-                                )
-                                logger_otel.emit(log_record)
+                # Process CPU Package temperatures - enhanced for multi-socket systems
+                # Iterate over all items in adapter_data to find CPU Packages
+                for package_key, package_data in adapter_data.items():
+                    if package_key.startswith("Package id "):
+                        try:
+                            package_id_str = package_key.replace("Package id ", "")  # Extracts "0", "1", etc.
+                            
+                            # Find the temperature input key (usually temp1_input)
+                            temp_key = next((k for k in package_data.keys() if k.endswith("_input") and k.startswith("temp")), None)
+                            
+                            if temp_key:
+                                package_temp = package_data.get(temp_key, 0)
+                                # Find max and crit temps
+                                max_key = temp_key.replace("_input", "_max")
+                                crit_key = temp_key.replace("_input", "_crit")
+                                
+                                # Use more robust default values and handle missing thresholds
+                                package_high = package_data.get(max_key)
+                                package_crit = package_data.get(crit_key)
+                                
+                                # Skip reporting invalid temperatures
+                                if package_temp is None or not isinstance(package_temp, (int, float)) or package_temp <= 0:
+                                    logger.warning(f"Invalid temperature value for CPU {package_key}: {package_temp}")
+                                    continue
+                                
+                                # Use sensible defaults only if thresholds are missing
+                                if package_high is None or not isinstance(package_high, (int, float)) or package_high <= 0:
+                                    package_high = 85.0  # Common high threshold
+                                    
+                                if package_crit is None or not isinstance(package_crit, (int, float)) or package_crit <= 0:
+                                    package_crit = 105.0  # Common critical threshold
+                                
+                                # Add socket information to the attributes for better organization in dashboards
+                                # Set metric
+                                if temperature_gauge:
+                                    temperature_gauge.set(package_temp, {
+                                        "source": "cpu",
+                                        "type": "package",
+                                        "name": f"package_id_{package_id_str}",
+                                        "high": str(package_high),
+                                        "critical": str(package_crit)
+                                    })
+                                
+                                temp_metrics[f"cpu_package_{package_id_str}"] = {
+                                    "temperature": package_temp,
+                                    "high": package_high,
+                                    "critical": package_crit
+                                }
+                                
+                                logger.info(f"CPU Package {package_id_str}: {package_temp}°C (High: {package_high}°C, Critical: {package_crit}°C)")
+                                
+                                # Alert on critical temperature
+                                if package_temp >= package_crit - TEMP_CRITICAL_THRESHOLD:
+                                    if logger_otel:
+                                        log_record = create_log_record(
+                                            timestamp=int(time.time() * 1e9),
+                                            body=f"ALERT: CPU Package {package_id_str} temperature critical: {package_temp}°C",
+                                            severity="ERROR",
+                                            attributes={
+                                                "event.type": "alert",
+                                                "sensor": f"cpu_package_{package_id_str}",
+                                                "temperature": package_temp,
+                                                "critical": package_crit
+                                            }
+                                        )
+                                        logger_otel.emit(log_record)
+                            else:
+                                logger.warning(f"No temperature input key found for CPU {package_key} in {adapter_name}")
+                        except Exception as e:
+                            logger.error(f"Error processing CPU {package_key} data in {adapter_name}: {e}")
+                            continue  # Continue to the next package if one fails
                 
-                # Process individual CPU cores - using proper temp key pattern
+                # Process individual CPU cores with enhanced error handling
                 for key, value in adapter_data.items():
                     if key.startswith("Core "):
-                        core_num = key.split()[1]
-                        # Find any temperature input key (may be temp2_input, temp6_input, etc.)
-                        temp_key = next((k for k in value.keys() if k.endswith("_input") and k.startswith("temp")), None)
-                        
-                        if temp_key:
-                            temp = value.get(temp_key, 0)
-                            # Find max and crit temps
-                            max_key = temp_key.replace("_input", "_max")
-                            crit_key = temp_key.replace("_input", "_crit")
+                        try:
+                            core_num = key.split()[1]
                             
-                            high = value.get(max_key, 85.0)
-                            crit = value.get(crit_key, 105.0)
+                            # Ensure value is a dictionary
+                            if not isinstance(value, dict):
+                                logger.warning(f"Core data for {key} is not a dictionary in {adapter_name}. Skipping.")
+                                continue
                             
-                            # Set metric
-                            if temperature_gauge:
-                                temperature_gauge.set(temp, {
-                                    "source": "cpu",
-                                    "type": "core",
-                                    "name": f"core_{core_num}",
-                                    "high": str(high),
-                                    "critical": str(crit)
-                                })
+                            # Find any temperature input key (may be temp2_input, temp6_input, etc.)
+                            temp_key = next((k for k in value.keys() if k.endswith("_input") and k.startswith("temp")), None)
                             
-                            temp_metrics[f"cpu_core_{core_num}"] = {
-                                "temperature": temp,
-                                "high": high,
-                                "critical": crit
-                            }
-                            
-                            # Log all core temperatures
-                            logger.info(f"CPU Core {core_num}: {temp}°C (High: {high}°C, Critical: {crit}°C)")
-                            
-                            # Alert on critical temperature
-                            if temp >= crit - TEMP_CRITICAL_THRESHOLD:
-                                if logger_otel:
-                                    log_record = create_log_record(
-                                        timestamp=int(time.time() * 1e9),
-                                        body=f"ALERT: CPU Core {core_num} temperature critical: {temp}°C",
-                                        severity="ERROR",
-                                        attributes={
+                            if temp_key:
+                                temp = value.get(temp_key)
+                                # Find max and crit temps
+                                max_key = temp_key.replace("_input", "_max")
+                                crit_key = temp_key.replace("_input", "_crit")
+                                
+                                # Use more robust default values and handle missing thresholds
+                                high = value.get(max_key)
+                                crit = value.get(crit_key)
+                                
+                                # Skip reporting invalid temperatures
+                                if temp is None or not isinstance(temp, (int, float)) or temp <= 0:
+                                    logger.warning(f"Invalid temperature value for CPU {key}: {temp}")
+                                    continue
+                                
+                                # Use sensible defaults only if thresholds are missing
+                                if high is None or not isinstance(high, (int, float)) or high <= 0:
+                                    high = 85.0  # Common high threshold
+                                    
+                                if crit is None or not isinstance(crit, (int, float)) or crit <= 0:
+                                    crit = 105.0  # Common critical threshold
+                                
+                                # Add socket identifier if available
+                                # This is more robust for multi-socket systems where the same core number
+                                # might appear in different sockets
+                                socket_id = None
+                                
+                                # Try to determine which socket/package this core belongs to
+                                # This approach is based on common core numbering in multi-socket systems
+                                # where cores are numbered sequentially across all sockets
+                                try:
+                                    core_int = int(core_num)
+                                    # Look for all Package id entries to determine core-to-socket mapping
+                                    package_count = sum(1 for k in adapter_data.keys() if k.startswith("Package id "))
+                                    if package_count > 1:
+                                        # Simple heuristic: in dual-socket systems, first half of cores belong to socket 0
+                                        # This is a simplification and may need adjustment for specific systems
+                                        cores_per_socket = len([k for k in adapter_data.keys() if k.startswith("Core ")]) // package_count
+                                        if cores_per_socket > 0:
+                                            socket_id = str(core_int // cores_per_socket)
+                                except (ValueError, ZeroDivisionError):
+                                    # If we can't determine the socket, don't add socket information
+                                    pass
+                                
+                                # Set metric with enhanced attributes
+                                if temperature_gauge:
+                                    attributes = {
+                                        "source": "cpu",
+                                        "type": "core",
+                                        "name": f"core_{core_num}",
+                                        "high": str(high),
+                                        "critical": str(crit)
+                                    }
+                                    
+                                    # Add socket information if available
+                                    if socket_id is not None:
+                                        attributes["socket"] = socket_id
+                                        
+                                    temperature_gauge.set(temp, attributes)
+                                
+                                core_metrics = {
+                                    "temperature": temp,
+                                    "high": high,
+                                    "critical": crit
+                                }
+                                
+                                # Add socket information if available
+                                if socket_id is not None:
+                                    core_metrics["socket"] = socket_id
+                                    
+                                temp_metrics[f"cpu_core_{core_num}"] = core_metrics
+                                
+                                # Log all core temperatures with socket info if available
+                                socket_info = f" (Socket {socket_id})" if socket_id is not None else ""
+                                logger.info(f"CPU Core {core_num}{socket_info}: {temp}°C (High: {high}°C, Critical: {crit}°C)")
+                                
+                                # Alert on critical temperature
+                                if temp >= crit - TEMP_CRITICAL_THRESHOLD:
+                                    if logger_otel:
+                                        alert_attributes = {
                                             "event.type": "alert",
                                             "sensor": f"cpu_core_{core_num}",
                                             "temperature": temp,
                                             "critical": crit
                                         }
-                                    )
-                                    logger_otel.emit(log_record)
+                                        
+                                        # Add socket information to alert if available
+                                        if socket_id is not None:
+                                            alert_attributes["socket"] = socket_id
+                                            
+                                        log_record = create_log_record(
+                                            timestamp=int(time.time() * 1e9),
+                                            body=f"ALERT: CPU Core {core_num}{socket_info} temperature critical: {temp}°C",
+                                            severity="ERROR",
+                                            attributes=alert_attributes
+                                        )
+                                        logger_otel.emit(log_record)
+                            else:
+                                logger.warning(f"No temperature input key found for CPU {key} in {adapter_name}")
+                        except Exception as e:
+                            logger.error(f"Error processing CPU {key} data in {adapter_name}: {e}")
+                            continue  # Continue to the next core if one fails
             
             # NVMe drive temperature
             elif "nvme" in adapter_name:

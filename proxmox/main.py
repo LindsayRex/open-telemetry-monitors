@@ -29,12 +29,14 @@ from lib.config import (
     logger, resource, OTEL_METRICS_ENDPOINT, OTEL_LOGS_ENDPOINT, OTEL_TRACES_ENDPOINT,
     COLLECTION_INTERVAL_SECONDS, LOG_COLLECTION_INTERVAL_SECONDS
 )
+from lib.utils import run_command
 
 # Import modular collectors
-from lib.collectors.system_collector import collect_system_metrics
+from lib.collectors.system_collector import collect_system_metrics, collect_disk_io_metrics
 from lib.collectors.vm_collector import collect_vm_metrics
 from lib.collectors.temperature_collector import collect_temperature_metrics
 from lib.collectors.storage_collector import collect_storage_metrics, collect_disk_smart_metrics
+from lib.collectors.zfs_collector import collect_zfs_pool_metrics
 
 from lib.log_collectors import (
     collect_and_send_logs, collect_and_send_journal_logs
@@ -68,7 +70,7 @@ def setup_opentelemetry():
     # Create a meter and define metrics
     meter = metrics.get_meter("proxmox.metrics")
     
-    # Define metrics
+    # Define metrics - store in a dictionary for easy access
     metrics_dict = {
         # Temperature metrics - enhanced for comprehensive monitoring
         'temperature': meter.create_gauge(
@@ -105,30 +107,6 @@ def setup_opentelemetry():
             description="Memory usage percentage",
             unit="%"
         ),
-        
-        # Disk metrics
-        'disk_io_read': meter.create_gauge(
-            name="proxmox_disk_io_read",
-            description="Disk read bytes",
-            unit="bytes"
-        ),
-        'disk_io_write': meter.create_gauge(
-            name="proxmox_disk_io_write",
-            description="Disk write bytes",
-            unit="bytes"
-        ),
-        
-        # Network metrics disabled
-        # 'net_in_bytes': meter.create_gauge(
-        #     name="proxmox_net_in_bytes",
-        #     description="Network input bytes",
-        #     unit="bytes"
-        # ),
-        # 'net_out_bytes': meter.create_gauge(
-        #     name="proxmox_net_out_bytes",
-        #     description="Network output bytes",
-        #     unit="bytes"
-        # ),
         
         # Node uptime
         'node_uptime': meter.create_gauge(
@@ -193,8 +171,152 @@ def setup_opentelemetry():
             name="proxmox_vm_memory_usage",
             description="VM memory usage percentage",
             unit="%"
-        )
+        ),
     }
+    
+    # Define ZFS metrics dictionary to hold the observable instruments
+    zfs_metrics = {}
+    
+    # Define system disk I/O metrics dictionary for observable counters
+    disk_io_metrics = {}
+    
+    # Define the system disk I/O metrics callback function
+    def disk_io_metrics_callback(options):
+        """Callback function for disk I/O observable metrics"""
+        try:
+            # Get the node info for labels
+            node_status = run_command("pvesh get /nodes/`hostname`/status -output-format json")
+            node_labels = {}
+            
+            if node_status:
+                try:
+                    node_data = json.loads(node_status)
+                    hostname = node_data.get('pveversion', 'unknown').split('/')[-1]
+                    node_id = node_data.get('node', 'unknown')
+                    
+                    # Basic labels for all metrics
+                    node_labels = {
+                        "node": node_id,
+                        "hostname": hostname
+                    }
+                except Exception as e:
+                    logger.error(f"Error parsing node data in disk I/O callback: {e}")
+            
+            # Call disk I/O metrics collector
+            io_data = collect_disk_io_metrics(node_labels)
+            
+            # For each device, observe the counter values
+            for device, metrics in io_data.items():
+                device_labels = dict(node_labels, **{"device": device})
+                
+                # Observe disk read bytes (cumulative counter)
+                if disk_io_metrics.get('disk_io_read'):
+                    disk_io_metrics['disk_io_read'].observe(metrics['bytes_read'], device_labels)
+                
+                # Observe disk write bytes (cumulative counter)
+                if disk_io_metrics.get('disk_io_write'):
+                    disk_io_metrics['disk_io_write'].observe(metrics['bytes_written'], device_labels)
+            
+        except Exception as e:
+            logger.error(f"Error in disk I/O metrics callback: {e}")
+    
+    # Create Observable instruments for disk I/O metrics (counters for cumulative values)
+    disk_io_metrics['disk_io_read'] = meter.create_observable_counter(
+        name="proxmox_disk_io_read_bytes_total",
+        description="Total bytes read from disk - use rate() in queries",
+        callbacks=[disk_io_metrics_callback],
+        unit="bytes"
+    )
+    
+    disk_io_metrics['disk_io_write'] = meter.create_observable_counter(
+        name="proxmox_disk_io_write_bytes_total",
+        description="Total bytes written to disk - use rate() in queries",
+        callbacks=[disk_io_metrics_callback],
+        unit="bytes"
+    )
+    
+    # Define the ZFS metrics callback function
+    def zfs_metrics_callback(options):
+        """Callback function for ZFS observable metrics"""
+        try:
+            # Call the ZFS metrics collector passing in all the instruments
+            collect_zfs_pool_metrics(
+                health_status=zfs_metrics['health_status'],
+                capacity_ratio=zfs_metrics['capacity'],
+                frag_ratio=zfs_metrics['fragmentation'],
+                checksum_errors=zfs_metrics['checksum_errors'],
+                read_bytes=zfs_metrics['read_bytes'],
+                write_bytes=zfs_metrics['write_bytes'],
+                read_ops=zfs_metrics['read_ops'],
+                write_ops=zfs_metrics['write_ops']
+            )
+        except Exception as e:
+            logger.error(f"Error in ZFS metrics callback: {e}")
+    
+    # Create Observable instruments for ZFS metrics
+    # Observable Gauges (for point-in-time values)
+    zfs_metrics['health_status'] = meter.create_observable_gauge(
+        name="zfs_pool_health_status",
+        description="ZFS pool health status (0=ONLINE, 1=DEGRADED, 2=FAULTED, 3=OFFLINE, 4=UNAVAIL, 5=REMOVED)",
+        callbacks=[zfs_metrics_callback],
+        unit="state"
+    )
+    
+    zfs_metrics['capacity'] = meter.create_observable_gauge(
+        name="zfs_pool_capacity_ratio",
+        description="ZFS pool capacity usage percentage",
+        callbacks=[zfs_metrics_callback],
+        unit="%"
+    )
+    
+    zfs_metrics['fragmentation'] = meter.create_observable_gauge(
+        name="zfs_pool_fragmentation_ratio",
+        description="ZFS pool fragmentation percentage",
+        callbacks=[zfs_metrics_callback],
+        unit="%"
+    )
+    
+    # Observable Counters (for cumulative values)
+    zfs_metrics['checksum_errors'] = meter.create_observable_counter(
+        name="zfs_pool_checksum_errors_total",
+        description="Total ZFS pool checksum errors - use increase() or rate() in queries",
+        callbacks=[zfs_metrics_callback],
+        unit="errors"
+    )
+    
+    zfs_metrics['read_bytes'] = meter.create_observable_counter(
+        name="zfs_pool_read_bytes_total",
+        description="Total bytes read from ZFS pool - use rate() in queries",
+        callbacks=[zfs_metrics_callback],
+        unit="bytes"
+    )
+    
+    zfs_metrics['write_bytes'] = meter.create_observable_counter(
+        name="zfs_pool_write_bytes_total",
+        description="Total bytes written to ZFS pool - use rate() in queries",
+        callbacks=[zfs_metrics_callback],
+        unit="bytes"
+    )
+    
+    zfs_metrics['read_ops'] = meter.create_observable_counter(
+        name="zfs_pool_read_ops_total",
+        description="Total read operations on ZFS pool - use rate() in queries",
+        callbacks=[zfs_metrics_callback],
+        unit="operations"
+    )
+    
+    zfs_metrics['write_ops'] = meter.create_observable_counter(
+        name="zfs_pool_write_ops_total",
+        description="Total write operations on ZFS pool - use rate() in queries",
+        callbacks=[zfs_metrics_callback],
+        unit="operations"
+    )
+    
+    # Merge the ZFS metrics into the main metrics dictionary
+    metrics_dict.update(zfs_metrics)
+    
+    # Merge the disk I/O metrics into the main metrics dictionary
+    metrics_dict.update(disk_io_metrics)
     
     return metrics_dict, logger_otel, tracer
 
@@ -285,9 +407,7 @@ def main():
                         memory_usage=metrics_dict['memory_usage'],
                         memory_total=metrics_dict['memory_total'],
                         memory_used=metrics_dict['memory_used'],
-                        node_uptime=metrics_dict['node_uptime'],
-                        disk_io_read=metrics_dict['disk_io_read'],
-                        disk_io_write=metrics_dict['disk_io_write']
+                        node_uptime=metrics_dict['node_uptime']
                     )
                     span.set_attribute("collector.name", "system")
                 
@@ -324,6 +444,9 @@ def main():
                         logger_otel
                     )
                     span.set_attribute("collector.name", "temperature")
+                
+                # ZFS metrics are now collected via Observable instruments callbacks
+                # No need to call collect_zfs_pool_metrics() here
                 
                 # CPU frequency metrics collection disabled
                 # collect_cpu_frequency_metrics(
