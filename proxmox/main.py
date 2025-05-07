@@ -29,7 +29,8 @@ from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapProp
 # Import our configuration and collectors
 from lib.config import (
     logger, resource, OTEL_METRICS_ENDPOINT, OTEL_LOGS_ENDPOINT, OTEL_TRACES_ENDPOINT,
-    COLLECTION_INTERVAL_SECONDS, LOG_COLLECTION_INTERVAL_SECONDS
+    COLLECTION_INTERVAL_SECONDS, LOG_COLLECTION_INTERVAL_SECONDS, 
+    ENABLE_TRACES
 )
 from lib.utils import run_command
 
@@ -73,12 +74,20 @@ def setup_opentelemetry():
     set_logger_provider(log_provider)
     logger_otel = get_logger("proxmox.logs")
     
-    # Setup OTLP HTTP exporter for traces
-    trace_exporter = OTLPSpanExporter(endpoint=OTEL_TRACES_ENDPOINT)
-    tracer_provider = TracerProvider(resource=resource)
-    tracer_provider.add_span_processor(BatchSpanProcessor(trace_exporter))
-    trace.set_tracer_provider(tracer_provider)
-    tracer = trace.get_tracer("proxmox.kernel")
+    # Setup OTLP HTTP exporter for traces - only if enabled
+    if ENABLE_TRACES:
+        trace_exporter = OTLPSpanExporter(endpoint=OTEL_TRACES_ENDPOINT)
+        tracer_provider = TracerProvider(resource=resource)
+        tracer_provider.add_span_processor(BatchSpanProcessor(trace_exporter))
+        trace.set_tracer_provider(tracer_provider)
+        tracer = trace.get_tracer("proxmox.kernel")
+        logger.info("Trace exporting enabled")
+    else:
+        # Set up a no-op tracer that doesn't actually send data
+        tracer_provider = TracerProvider(resource=resource)
+        trace.set_tracer_provider(tracer_provider)
+        tracer = trace.get_tracer("proxmox.kernel")
+        logger.info("Trace exporting disabled - using no-op tracer")
     
     # Create a meter and define metrics
     meter = metrics.get_meter("proxmox.metrics")
@@ -515,7 +524,8 @@ def main():
                 # )
                 
                 logger.info(f"Metrics collected and sent to {OTEL_METRICS_ENDPOINT}")
-                logger.info(f"Traces sent to {OTEL_TRACES_ENDPOINT}")
+                if ENABLE_TRACES:
+                    logger.info(f"Traces sent to {OTEL_TRACES_ENDPOINT}")
             
             # Wait for the next collection interval
             time.sleep(COLLECTION_INTERVAL_SECONDS)
