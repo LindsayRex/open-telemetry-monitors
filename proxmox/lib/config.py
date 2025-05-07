@@ -44,6 +44,9 @@ OTEL_TRACES_ENDPOINT = f"http://{OTEL_COLLECTOR_HOST}:{OTEL_COLLECTOR_PORT}/v1/t
 COLLECTION_INTERVAL_SECONDS = int(os.getenv("OTEL_COLLECTION_INTERVAL", "30"))  # How often to collect and send metrics
 LOG_COLLECTION_INTERVAL_SECONDS = int(os.getenv("OTEL_LOG_COLLECTION_INTERVAL", "60"))  # How often to collect and send logs
 
+# Feature toggles
+ENABLE_TRACES = os.getenv("ENABLE_TRACES", "false").lower() in ("true", "1", "yes")  # Disabled by default
+
 # Proxmox log files to monitor - Reduced list to focus on critical logs
 LOG_FILES = [
     "/var/log/syslog",

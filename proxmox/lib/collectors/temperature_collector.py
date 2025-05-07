@@ -372,8 +372,18 @@ def _collect_acpi_temps(adapter_name, adapter_data, temperature_gauge, temp_metr
 
 
 def _collect_gigabyte_temps(adapter_name, adapter_data, temperature_gauge, temp_metrics):
-    """Helper function to collect Gigabyte WMI temperature sensors."""
+    """Helper function to collect Gigabyte WMI temperature sensors with known mapping."""
     logger.info(f"Processing Gigabyte WMI: {adapter_name}")
+    
+    # Mapping from WMI tempX key to descriptive BIOS/Smart Fan name
+    wmi_temp_mapping = {
+        "temp1": "System2",       # System 2
+        "temp2": "PCH",           # PCH
+        "temp3": "CPU_Socket",    # CPU (Likely CPU socket/motherboard area near CPU)
+        "temp4": "PCIEX16_Slot",  # PCIEX16
+        "temp5": "PCIEX4_Slot",   # PCIEX4
+        "temp6": "VRM_MOS"        # VRM MOS
+    }
     
     for sensor_outer_key, sensor_data_dict in adapter_data.items():
         # Skip the "Adapter" key and process only temp entries
@@ -386,20 +396,28 @@ def _collect_gigabyte_temps(adapter_name, adapter_data, temperature_gauge, temp_
                     temp = sensor_data_dict.get(input_key)
                     
                     if temp is not None and isinstance(temp, (int, float)):
-                        # Use sensor_outer_key for naming as it's "temp1", "temp2" etc.
-                        sensor_name_suffix = sensor_outer_key 
+                        # Get the descriptive name from the mapping
+                        descriptive_name_raw = wmi_temp_mapping.get(sensor_outer_key)
+                        
+                        if descriptive_name_raw:
+                            # Clean up the descriptive name for use in metric attributes
+                            descriptive_name_metric = descriptive_name_raw.replace(" ", "_").replace("/", "_").lower()
+                        else:
+                            # Fallback if tempX is not in our map
+                            descriptive_name_metric = f"unknown_wmi_{sensor_outer_key}"
+                            logger.warning(f"Gigabyte WMI sensor {sensor_outer_key} not found in mapping. Using default name.")
 
                         if temperature_gauge:
                             temperature_gauge.set(temp, {
                                 "source": "gigabyte_wmi",
-                                "type": "motherboard_sensor",  # More descriptive type
-                                "name": f"gigabyte_{sensor_name_suffix}" 
+                                "type": "motherboard_sensor",
+                                "name": descriptive_name_metric
                             })
                         
-                        temp_metrics[f"gigabyte_{sensor_name_suffix}"] = {
+                        temp_metrics[f"gigabyte_wmi_{descriptive_name_metric}"] = {
                             "temperature": temp
                         }
-                        logger.info(f"Gigabyte WMI {sensor_name_suffix}: {temp}°C")
+                        logger.info(f"Gigabyte WMI - {descriptive_name_raw} ({sensor_outer_key}): {temp}°C")
                     else:
                         logger.warning(f"Invalid or missing temperature value for Gigabyte WMI {sensor_outer_key} (key: {input_key})")
                 else:
