@@ -9,8 +9,8 @@ from lib.config import logger
 from lib.utils import run_command
 
 def collect_system_metrics(cpu_usage=None, memory_usage=None, memory_total=None, 
-                          memory_used=None, node_uptime=None, disk_io_read=None, 
-                          disk_io_write=None, net_in_bytes=None, net_out_bytes=None):
+                          memory_used=None, node_uptime=None, 
+                          net_in_bytes=None, net_out_bytes=None):
     """Collect system metrics from Proxmox node."""
     logger.info("Collecting node system metrics")
     system_metrics = {}
@@ -89,19 +89,7 @@ def collect_system_metrics(cpu_usage=None, memory_usage=None, memory_total=None,
                 
                 logger.info(f"Node Uptime: {uptime_seconds/(60*60*24):.1f} days")
                 
-                # Network metrics collection disabled
-                # try:
-                #     net_data = collect_network_metrics(node_labels, net_in_bytes, net_out_bytes)
-                #     system_metrics['network'] = net_data
-                # except Exception as e:
-                #     logger.error(f"Error collecting network metrics: {e}")
-                
-                # Get disk I/O metrics
-                try:
-                    io_data = collect_disk_io_metrics(node_labels, disk_io_read, disk_io_write)
-                    system_metrics['disk_io'] = io_data
-                except Exception as e:
-                    logger.error(f"Error collecting disk I/O metrics: {e}")
+                # Disk I/O metrics are now collected via observable callbacks in main.py
                 
             except json.JSONDecodeError as e:
                 logger.error(f"Error parsing node status JSON: {e}")
@@ -112,71 +100,13 @@ def collect_system_metrics(cpu_usage=None, memory_usage=None, memory_total=None,
     return system_metrics
 
 
-def collect_network_metrics(node_labels, net_in_bytes=None, net_out_bytes=None):
-    """Collect network interface metrics."""
-    logger.info("Collecting network metrics")
-    network_metrics = {}
+def collect_disk_io_data_raw():
+    """Collect raw disk I/O metrics without updating OpenTelemetry instruments.
     
-    # Run command to get network interface statistics
-    net_stats = run_command("cat /proc/net/dev")
-    if not net_stats:
-        return network_metrics
-    
-    # Parse network statistics
-    lines = net_stats.strip().split('\n')[2:]  # Skip header lines
-    for line in lines:
-        parts = line.strip().split(':')
-        if len(parts) != 2:
-            continue
-        
-        iface = parts[0].strip()
-        # Skip loopback and virtual interfaces
-        if iface == 'lo' or iface.startswith('vmbr') or iface.startswith('veth'):
-            continue
-        
-        stats = parts[1].strip().split()
-        if len(stats) < 16:
-            continue
-        
-        # Extract statistics (refer to /proc/net/dev documentation for field meanings)
-        rx_bytes = int(stats[0])
-        rx_packets = int(stats[1])
-        rx_errors = int(stats[2])
-        rx_dropped = int(stats[3])
-        
-        tx_bytes = int(stats[8])
-        tx_packets = int(stats[9])
-        tx_errors = int(stats[10])
-        tx_dropped = int(stats[11])
-        
-        # Store metrics
-        network_metrics[iface] = {
-            'rx_bytes': rx_bytes,
-            'rx_packets': rx_packets,
-            'rx_errors': rx_errors,
-            'rx_dropped': rx_dropped,
-            'tx_bytes': tx_bytes,
-            'tx_packets': tx_packets,
-            'tx_errors': tx_errors,
-            'tx_dropped': tx_dropped
-        }
-        
-        # Create interface-specific labels
-        iface_labels = dict(node_labels, **{"interface": iface})
-        
-        # Send bytes metrics
-        if net_in_bytes:
-            net_in_bytes.set(rx_bytes, iface_labels)
-        if net_out_bytes:
-            net_out_bytes.set(tx_bytes, iface_labels)
-        
-        logger.info(f"Network {iface}: RX {rx_bytes/(1024**2):.1f}MB, TX {tx_bytes/(1024**2):.1f}MB")
-    
-    return network_metrics
-
-
-def collect_disk_io_metrics(node_labels, disk_io_read=None, disk_io_write=None):
-    """Collect disk I/O metrics."""
+    Returns:
+        dict: A dictionary with device names as keys and I/O metrics as values.
+              Each device's metrics include bytes_read, bytes_written, and other stats.
+    """
     logger.info("Collecting disk I/O metrics")
     io_metrics = {}
     
@@ -193,7 +123,14 @@ def collect_disk_io_metrics(node_labels, disk_io_read=None, disk_io_write=None):
         
         device = parts[2]
         # Skip non-physical devices and partitions
-        if device.startswith(('loop', 'ram', 'dm-')) or re.match(r'.*\d+$', device):
+        if device.startswith(('loop', 'ram', 'dm-')):
+            continue
+        
+        # Skip partitions (e.g., sda1, sda2) but keep full disks (e.g., sda)
+        # Also handle NVMe devices correctly (keep nvme0n1 but skip nvme0n1p1)
+        if re.match(r'.*\d+$', device) and not device.startswith("nvme"):
+            continue
+        if device.startswith("nvme") and "p" in device:
             continue
         
         # Extract statistics
@@ -222,15 +159,6 @@ def collect_disk_io_metrics(node_labels, disk_io_read=None, disk_io_write=None):
             'bytes_written': bytes_written,
             'time_writing_ms': time_writing_ms
         }
-        
-        # Create device-specific labels
-        device_labels = dict(node_labels, **{"device": device})
-        
-        # Send bytes metrics if provided (for backward compatibility)
-        if disk_io_read:
-            disk_io_read.set(bytes_read, device_labels)
-        if disk_io_write:
-            disk_io_write.set(bytes_written, device_labels)
         
         logger.info(f"Disk {device}: Read {bytes_read/(1024**3):.1f}GB, Write {bytes_written/(1024**3):.1f}GB")
     

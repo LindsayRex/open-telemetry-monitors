@@ -6,22 +6,43 @@ import glob
 import os
 import logging
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from opentelemetry.sdk.resources import Resource
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    filename='/var/log/proxmox-otel.log'
-)
-logger = logging.getLogger("proxmox-otel")
+# Log file configuration
+LOG_FILE_PATH = '/var/log/proxmox-otel.log'
+MAX_LOG_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+BACKUP_COUNT = 5
 
-# OpenTelemetry server configuration
-OTEL_METRICS_ENDPOINT = "http://192.168.0.185:4318/v1/metrics"
-OTEL_LOGS_ENDPOINT = "http://192.168.0.185:4318/v1/logs"
-OTEL_TRACES_ENDPOINT = "http://192.168.0.185:4318/v1/traces"  # Endpoint for Tempo tracing
-COLLECTION_INTERVAL_SECONDS = 30  # How often to collect and send metrics
-LOG_COLLECTION_INTERVAL_SECONDS = 60  # How often to collect and send logs
+# Configure logging with rotation
+logger = logging.getLogger("proxmox-otel")
+logger.setLevel(logging.INFO)
+
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Add rotating file handler
+file_handler = RotatingFileHandler(
+    LOG_FILE_PATH,
+    maxBytes=MAX_LOG_SIZE_BYTES,
+    backupCount=BACKUP_COUNT
+)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+# Optional: Uncomment to add console logging during development
+# console_handler = logging.StreamHandler()
+# console_handler.setFormatter(formatter)
+# logger.addHandler(console_handler)
+
+# OpenTelemetry server configuration - Environment variables with fallbacks
+OTEL_COLLECTOR_HOST = os.getenv("OTEL_COLLECTOR_HOST", "192.168.0.185")
+OTEL_COLLECTOR_PORT = os.getenv("OTEL_COLLECTOR_PORT", "4318")
+
+OTEL_METRICS_ENDPOINT = f"http://{OTEL_COLLECTOR_HOST}:{OTEL_COLLECTOR_PORT}/v1/metrics"
+OTEL_LOGS_ENDPOINT = f"http://{OTEL_COLLECTOR_HOST}:{OTEL_COLLECTOR_PORT}/v1/logs"
+OTEL_TRACES_ENDPOINT = f"http://{OTEL_COLLECTOR_HOST}:{OTEL_COLLECTOR_PORT}/v1/traces"  # Endpoint for Tempo tracing
+COLLECTION_INTERVAL_SECONDS = int(os.getenv("OTEL_COLLECTION_INTERVAL", "30"))  # How often to collect and send metrics
+LOG_COLLECTION_INTERVAL_SECONDS = int(os.getenv("OTEL_LOG_COLLECTION_INTERVAL", "60"))  # How often to collect and send logs
 
 # Proxmox log files to monitor - Reduced list to focus on critical logs
 LOG_FILES = [

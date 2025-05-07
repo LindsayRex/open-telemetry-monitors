@@ -296,7 +296,15 @@ def collect_temperature_metrics(temperature_gauge, logger_otel):
                                 high_key = temp_key.replace("_input", "_max") if temp_key.replace("_input", "_max") in sensor_data else temp_key.replace("_input", "_high")
                                 
                                 low = sensor_data.get(low_key, -273.1)
-                                high = sensor_data.get(high_key, 65261.8)
+                                high_val = sensor_data.get(high_key)
+                                
+                                # Handle unrealistic high threshold values (like 65261.8)
+                                if high_val is None or high_val > 200:
+                                    high = 85.0  # Use sensible default instead of unrealistic value
+                                    high_attr = "N/A"  # Mark as not available in attributes
+                                else:
+                                    high = high_val
+                                    high_attr = str(high)
                                 
                                 # Device name formatting
                                 device_name = adapter_name.replace('-', '_')
@@ -307,7 +315,7 @@ def collect_temperature_metrics(temperature_gauge, logger_otel):
                                         "source": "nvme",
                                         "type": "sensor",
                                         "name": f"{device_name}_sensor_{sensor_num}",
-                                        "high": str(high)
+                                        "high": high_attr
                                     })
                                 
                                 temp_metrics[f"nvme_{device_name}_sensor_{sensor_num}"] = {
@@ -365,26 +373,40 @@ def _collect_acpi_temps(adapter_name, adapter_data, temperature_gauge, temp_metr
 
 def _collect_gigabyte_temps(adapter_name, adapter_data, temperature_gauge, temp_metrics):
     """Helper function to collect Gigabyte WMI temperature sensors."""
-    # These have a different structure, with direct temp keys
-    for key, value in adapter_data.items():
-        if key.startswith("temp") and key != "Adapter":
-            if isinstance(value, (int, float)):
-                # Direct temperature value
-                temp = value
+    logger.info(f"Processing Gigabyte WMI: {adapter_name}")
+    
+    for sensor_outer_key, sensor_data_dict in adapter_data.items():
+        # Skip the "Adapter" key and process only temp entries
+        if sensor_outer_key != "Adapter" and sensor_outer_key.startswith("temp") and isinstance(sensor_data_dict, dict):
+            try:
+                # Find the key ending with _input (e.g., temp1_input, temp2_input)
+                input_key = next((k for k in sensor_data_dict.keys() if k.endswith("_input") and k.startswith("temp")), None)
                 
-                # Set metric
-                if temperature_gauge:
-                    temperature_gauge.set(temp, {
-                        "source": "gigabyte_wmi",
-                        "type": "temp",
-                        "name": f"gigabyte_{key}"
-                    })
-                
-                temp_metrics[f"gigabyte_{key}"] = {
-                    "temperature": temp
-                }
-                
-                logger.info(f"Gigabyte WMI {key}: {temp}°C")
+                if input_key:
+                    temp = sensor_data_dict.get(input_key)
+                    
+                    if temp is not None and isinstance(temp, (int, float)):
+                        # Use sensor_outer_key for naming as it's "temp1", "temp2" etc.
+                        sensor_name_suffix = sensor_outer_key 
+
+                        if temperature_gauge:
+                            temperature_gauge.set(temp, {
+                                "source": "gigabyte_wmi",
+                                "type": "motherboard_sensor",  # More descriptive type
+                                "name": f"gigabyte_{sensor_name_suffix}" 
+                            })
+                        
+                        temp_metrics[f"gigabyte_{sensor_name_suffix}"] = {
+                            "temperature": temp
+                        }
+                        logger.info(f"Gigabyte WMI {sensor_name_suffix}: {temp}°C")
+                    else:
+                        logger.warning(f"Invalid or missing temperature value for Gigabyte WMI {sensor_outer_key} (key: {input_key})")
+                else:
+                    logger.warning(f"No input key found for Gigabyte WMI sensor {sensor_outer_key}")
+            except Exception as e:
+                logger.error(f"Error processing Gigabyte WMI sensor {sensor_outer_key}: {e}")
+                continue
 
 
 def _collect_other_temps(adapter_name, adapter_data, temperature_gauge, temp_metrics):

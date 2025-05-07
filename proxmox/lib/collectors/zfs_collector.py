@@ -62,9 +62,9 @@ def collect_zfs_pool_metrics(health_status=None, capacity_ratio=None, frag_ratio
                 elif health == "REMOVED":
                     health_value = 5
                 
-                # Send health metric (ObservableGauge - use set())
+                # Send health metric (ObservableGauge - use observe() instead of set())
                 if health_status:
-                    health_status.set(health_value, {"pool": pool, "health_text": health})
+                    health_status.observe(health_value, attributes={"pool": pool, "health_text": health})
                     
                 logger.info(f"ZFS pool {pool} health status: {health}")
                 
@@ -75,9 +75,9 @@ def collect_zfs_pool_metrics(health_status=None, capacity_ratio=None, frag_ratio
                     capacity = float(capacity_match.group(1))
                     zfs_metrics[pool]['capacity'] = capacity
                     
-                    # Send capacity metric (ObservableGauge - use set())
+                    # Send capacity metric (ObservableGauge - use observe() instead of set())
                     if capacity_ratio:
-                        capacity_ratio.set(capacity, {"pool": pool})
+                        capacity_ratio.observe(capacity, attributes={"pool": pool})
                         
                     logger.info(f"ZFS pool {pool} capacity: {capacity}%")
                 
@@ -88,9 +88,9 @@ def collect_zfs_pool_metrics(health_status=None, capacity_ratio=None, frag_ratio
                     fragmentation = float(frag_match.group(1))
                     zfs_metrics[pool]['fragmentation'] = fragmentation
                     
-                    # Send fragmentation metric (ObservableGauge - use set())
+                    # Send fragmentation metric (ObservableGauge - use observe() instead of set())
                     if frag_ratio:
-                        frag_ratio.set(fragmentation, {"pool": pool})
+                        frag_ratio.observe(fragmentation, attributes={"pool": pool})
                         
                     logger.info(f"ZFS pool {pool} fragmentation: {fragmentation}%")
         else:
@@ -112,7 +112,7 @@ def collect_zfs_pool_metrics(health_status=None, capacity_ratio=None, frag_ratio
             
             # Send checksum errors metric (ObservableCounter - use observe())
             if checksum_errors:
-                checksum_errors.observe(total_cksum, {"pool": pool})
+                checksum_errors.observe(total_cksum, attributes={"pool": pool})
                 
             logger.info(f"ZFS pool {pool} checksum errors: {total_cksum}")
         
@@ -139,13 +139,13 @@ def collect_zfs_pool_metrics(health_status=None, capacity_ratio=None, frag_ratio
                         
                         # Send I/O metrics (ObservableCounter - use observe())
                         if read_ops:
-                            read_ops.observe(read_ops_val, {"pool": pool})
+                            read_ops.observe(read_ops_val, attributes={"pool": pool})
                         if write_ops:
-                            write_ops.observe(write_ops_val, {"pool": pool})
+                            write_ops.observe(write_ops_val, attributes={"pool": pool})
                         if read_bytes:
-                            read_bytes.observe(read_bytes_val, {"pool": pool})
+                            read_bytes.observe(read_bytes_val, attributes={"pool": pool})
                         if write_bytes:
-                            write_bytes.observe(write_bytes_val, {"pool": pool})
+                            write_bytes.observe(write_bytes_val, attributes={"pool": pool})
                             
                         logger.info(f"ZFS pool {pool} I/O: {read_bytes_val} bytes read, {write_bytes_val} bytes written, {read_ops_val} read ops, {write_ops_val} write ops")
                     except (ValueError, IndexError) as e:
