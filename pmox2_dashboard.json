@@ -19,7 +19,38 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": 11,
-  "links": [],
+  "links": [
+    {
+      "title": "Node Overview",
+      "url": "/d/node-overview",
+      "icon": "dashboard",
+      "type": "link"
+    },
+    {
+      "title": "VM Dashboard",
+      "url": "/d/vm-dashboard",
+      "icon": "dashboard",
+      "type": "link"
+    },
+    {
+      "title": "Storage & Disk",
+      "url": "/d/storage-disk",
+      "icon": "dashboard",
+      "type": "link"
+    },
+    {
+      "title": "Temperature Sensors",
+      "url": "/d/temperature-sensors",
+      "icon": "dashboard",
+      "type": "link"
+    },
+    {
+      "title": "Logs & Alerts",
+      "url": "/d/logs-alerts",
+      "icon": "dashboard",
+      "type": "link"
+    }
+  ],
   "panels": [
     {
       "collapsed": false,
@@ -868,6 +899,727 @@
       ],
       "title": "Alerts",
       "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "id": 20,
+      "panels": [],
+      "title": "ZFS Pools",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 38
+      },
+      "id": 21,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "zfs_pool_health_status{pool=~\"fastz|mediumz\"}",
+          "legendFormat": "Pool: {{pool}} ({{health_text}})",
+          "refId": "A"
+        }
+      ],
+      "title": "ZFS Pool Health",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 38
+      },
+      "id": 22,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "zfs_pool_capacity_ratio{pool=~\"fastz|mediumz\"}",
+          "legendFormat": "Pool: {{pool}}",
+          "refId": "A"
+        }
+      ],
+      "title": "ZFS Pool Capacity %",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 38
+      },
+      "id": 23,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "zfs_pool_fragmentation_ratio{pool=~\"fastz|mediumz\"}",
+          "legendFormat": "Pool: {{pool}}",
+          "refId": "A"
+        }
+      ],
+      "title": "ZFS Pool Fragmentation %",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 42
+      },
+      "id": 24,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "zfs_pool_checksum_errors_total{pool=~\"fastz|mediumz\"}",
+          "legendFormat": "Pool: {{pool}}",
+          "refId": "A"
+        }
+      ],
+      "title": "ZFS Pool Checksum Errors",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "id": 25,
+      "panels": [],
+      "title": "Disk I/O & SMART",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 47
+      },
+      "id": 26,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "proxmox_disk_io_read_bytes_total{device=~\"nvme1n1|nvme0n1|sda|sdb\"}",
+          "legendFormat": "Read: {{device}}",
+          "refId": "A"
+        },
+        {
+          "expr": "proxmox_disk_io_write_bytes_total{device=~\"nvme1n1|nvme0n1|sda|sdb\"}",
+          "legendFormat": "Write: {{device}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Disk I/O (Bytes)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 47
+      },
+      "id": 27,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "expr": "proxmox_smart_attributes{device=~\"nvme1n1|nvme0n1|sda|sdb\"}",
+          "legendFormat": "{{attribute_name}} ({{type}})",
+          "refId": "A"
+        }
+      ],
+      "title": "SMART Attributes",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 51
+      },
+      "id": 28,
+      "panels": [],
+      "title": "Per-Core & Per-Sensor Temperatures",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 52
+      },
+      "id": 29,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "proxmox_temperature_celsius{name=~\"CPU Package 0|CPU Core 0|CPU Core 4|CPU Core 8|CPU Core 12|CPU Core 16|CPU Core 20|CPU Core 24|CPU Core 28|CPU Core 36|CPU Core 37|CPU Core 38|CPU Core 39|nvme_pci_0300 Composite|nvme_pci_0300 Sensor 1|nvme_pci_0300 Sensor 2|nvme_pci_0200 Composite|ACPI temp1|ACPI temp2|System2|PCH|CPU_Socket|PCIEX16_Slot|PCIEX4_Slot|VRM_MOS\"}",
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "All Sensor Temperatures",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 52
+      },
+      "id": 30,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "proxmox_temperature_celsius{source=\"cpu\",type=\"core\",name=~\"$sensor\"}",
+          "legendFormat": "Core {{name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU Core Temperatures",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 52
+      },
+      "id": 31,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "proxmox_temperature_celsius{source=\"nvme\",name=~\"$sensor\"}",
+          "legendFormat": "NVMe {{name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "NVMe Temperatures",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 56
+      },
+      "id": 32,
+      "panels": [],
+      "title": "VMs",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 57
+      },
+      "id": 33,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "proxmox_vm_status{vmid=~\"$vmid\"}",
+          "legendFormat": "VM: {{name}} ({{type}})",
+          "refId": "A"
+        }
+      ],
+      "title": "VM Status",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 57
+      },
+      "id": 34,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "proxmox_vm_cpu_usage{vmid=~\"$vmid\"}",
+          "legendFormat": "VM: {{name}} CPU",
+          "refId": "A"
+        }
+      ],
+      "title": "VM CPU Usage %",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 57
+      },
+      "id": 35,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "proxmox_vm_memory_usage{vmid=~\"$vmid\"}",
+          "legendFormat": "VM: {{name}} Mem",
+          "refId": "A"
+        }
+      ],
+      "title": "VM Memory Usage %",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 61
+      },
+      "id": 36,
+      "panels": [],
+      "title": "Node Overview",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 62
+      },
+      "id": 37,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "proxmox_cpu_usage_percent{node=~\"$node\"}",
+          "legendFormat": "Node: {{node}} CPU",
+          "refId": "A"
+        }
+      ],
+      "title": "Node CPU Usage %",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 62
+      },
+      "id": 38,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "proxmox_memory_usage{node=~\"$node\"}",
+          "legendFormat": "Node: {{node}} Mem",
+          "refId": "A"
+        }
+      ],
+      "title": "Node Memory Usage %",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 62
+      },
+      "id": 39,
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "expr": "proxmox_node_uptime{node=~\"$node\"}",
+          "legendFormat": "Node: {{node}} Uptime",
+          "refId": "A"
+        }
+      ],
+      "title": "Node Uptime (s)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 66
+      },
+      "id": 40,
+      "panels": [],
+      "title": "Summary & Alerts",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 67
+      },
+      "id": 41,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "count(zfs_pool_health_status{health_text!=\"ONLINE\"})",
+          "legendFormat": "Unhealthy ZFS Pools",
+          "refId": "A"
+        }
+      ],
+      "title": "Unhealthy ZFS Pools (Count)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 67
+      },
+      "id": 42,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "count(proxmox_temperature_celsius{temperature>80})",
+          "legendFormat": "Sensors >80°C",
+          "refId": "A"
+        }
+      ],
+      "title": "Sensors Over 80°C (Count)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 67
+      },
+      "id": 43,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "count(proxmox_vm_status{status!=1})",
+          "legendFormat": "VMs Not Running",
+          "refId": "A"
+        }
+      ],
+      "title": "VMs Not Running (Count)",
+      "type": "stat"
     }
   ],
   "preload": false,
@@ -876,6 +1628,41 @@
   "tags": [],
   "templating": {
     "list": [
+      {
+        "name": "node",
+        "type": "query",
+        "datasource": "prometheus",
+        "query": "label_values(node)",
+        "refresh": 1
+      },
+      {
+        "name": "vmid",
+        "type": "query",
+        "datasource": "prometheus",
+        "query": "label_values(proxmox_vm_status, vmid)",
+        "refresh": 1
+      },
+      {
+        "name": "pool",
+        "type": "query",
+        "datasource": "prometheus",
+        "query": "label_values(zfs_pool_health_status, pool)",
+        "refresh": 1
+      },
+      {
+        "name": "device",
+        "type": "query",
+        "datasource": "prometheus",
+        "query": "label_values(proxmox_disk_io_read_bytes_total, device)",
+        "refresh": 1
+      },
+      {
+        "name": "sensor",
+        "type": "query",
+        "datasource": "prometheus",
+        "query": "label_values(proxmox_temperature_celsius, name)",
+        "refresh": 1
+      },
       {
         "baseFilters": [],
         "datasource": {

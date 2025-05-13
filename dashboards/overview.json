@@ -1,0 +1,84 @@
+{
+    "dashboard": {
+        "title": "Proxmox Overview",
+        "uid": "proxmox-overview",
+        "links": [
+            {
+                "title": "Node Details",
+                "url": "/d/node-details",
+                "icon": "dashboard",
+                "type": "link"
+            },
+            {
+                "title": "VM Dashboard",
+                "url": "/d/vm-dashboard",
+                "icon": "dashboard",
+                "type": "link"
+            },
+            {
+                "title": "Storage & Disk",
+                "url": "/d/storage-disk",
+                "icon": "dashboard",
+                "type": "link"
+            },
+            {
+                "title": "Temperature Sensors",
+                "url": "/d/temperature-sensors",
+                "icon": "dashboard",
+                "type": "link"
+            },
+            {
+                "title": "Logs & Alerts",
+                "url": "/d/logs-alerts",
+                "icon": "dashboard",
+                "type": "link"
+            }
+        ],
+        "panels": [
+            {
+                "type": "stat",
+                "title": "Cluster CPU Usage",
+                "targets": [
+                    {
+                        "expr": "proxmox_cpu_usage_percent",
+                        "legendFormat": "CPU Usage"
+                    }
+                ]
+            },
+            {
+                "type": "stat",
+                "title": "Cluster Memory Usage",
+                "targets": [
+                    {
+                        "expr": "proxmox_memory_usage_percent",
+                        "legendFormat": "Memory Usage"
+                    }
+                ]
+            },
+            {
+                "type": "stat",
+                "title": "Cluster Uptime",
+                "targets": [
+                    {
+                        "expr": "proxmox_node_uptime",
+                        "legendFormat": "Uptime"
+                    }
+                ]
+            },
+            {
+                "type": "stat",
+                "title": "Cluster Quorum",
+                "targets": [
+                    {
+                        "expr": "proxmox_cluster_quorum",
+                        "legendFormat": "Quorum"
+                    }
+                ]
+            }
+        ],
+        "schemaVersion": 41,
+        "version": 1
+    },
+    "folderId": 0,
+    "overwrite": true
+}

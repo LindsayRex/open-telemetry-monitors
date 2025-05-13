@@ -1,0 +1,94 @@
+{
+    "dashboard": {
+        "title": "Storage & Disk",
+        "uid": "storage-disk",
+        "templating": {
+            "list": [
+                {
+                    "name": "pool",
+                    "type": "query",
+                    "datasource": "prometheus",
+                    "query": "label_values(zfs_pool_health_status, pool)",
+                    "refresh": 1
+                },
+                {
+                    "name": "device",
+                    "type": "query",
+                    "datasource": "prometheus",
+                    "query": "label_values(proxmox_disk_io_read_bytes_total, device)",
+                    "refresh": 1
+                }
+            ]
+        },
+        "panels": [
+            {
+                "type": "stat",
+                "title": "ZFS Pool Health",
+                "targets": [
+                    {
+                        "expr": "zfs_pool_health_status{pool=~\"$pool\"}",
+                        "legendFormat": "Pool: {{pool}} ({{health_text}})"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "ZFS Pool Capacity %",
+                "targets": [
+                    {
+                        "expr": "zfs_pool_capacity_ratio{pool=~\"$pool\"}",
+                        "legendFormat": "Pool: {{pool}}"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "ZFS Pool Fragmentation %",
+                "targets": [
+                    {
+                        "expr": "zfs_pool_fragmentation_ratio{pool=~\"$pool\"}",
+                        "legendFormat": "Pool: {{pool}}"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "ZFS Pool Checksum Errors",
+                "targets": [
+                    {
+                        "expr": "zfs_pool_checksum_errors_total{pool=~\"$pool\"}",
+                        "legendFormat": "Pool: {{pool}}"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "Disk I/O (Bytes)",
+                "targets": [
+                    {
+                        "expr": "proxmox_disk_io_read_bytes_total{device=~\"$device\"}",
+                        "legendFormat": "Read: {{device}}"
+                    },
+                    {
+                        "expr": "proxmox_disk_io_write_bytes_total{device=~\"$device\"}",
+                        "legendFormat": "Write: {{device}}"
+                    }
+                ]
+            },
+            {
+                "type": "table",
+                "title": "SMART Attributes",
+                "targets": [
+                    {
+                        "expr": "proxmox_smart_attributes{device=~\"$device\"}",
+                        "legendFormat": "{{attribute_name}} ({{type}})"
+                    }
+                ]
+            }
+        ],
+        "schemaVersion": 41,
+        "version": 1
+    },
+    "folderId": 0,
+    "overwrite": true
+}

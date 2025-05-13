@@ -1,0 +1,63 @@
+{
+    "dashboard": {
+        "title": "Node Details",
+        "uid": "node-details",
+        "templating": {
+            "list": [
+                {
+                    "name": "node",
+                    "type": "query",
+                    "datasource": "prometheus",
+                    "query": "label_values(node)",
+                    "refresh": 1
+                }
+            ]
+        },
+        "panels": [
+            {
+                "type": "timeseries",
+                "title": "CPU Usage (per core)",
+                "targets": [
+                    {
+                        "expr": "proxmox_cpu_usage_percent{node=~\"$node\",core=~\".*\"}",
+                        "legendFormat": "Core {{core}}"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "Memory Usage",
+                "targets": [
+                    {
+                        "expr": "proxmox_memory_usage_percent{node=~\"$node\"}",
+                        "legendFormat": "Memory Usage"
+                    }
+                ]
+            },
+            {
+                "type": "stat",
+                "title": "Uptime",
+                "targets": [
+                    {
+                        "expr": "proxmox_node_uptime{node=~\"$node\"}",
+                        "legendFormat": "Uptime"
+                    }
+                ]
+            },
+            {
+                "type": "stat",
+                "title": "Cluster Quorum",
+                "targets": [
+                    {
+                        "expr": "proxmox_cluster_quorum",
+                        "legendFormat": "Quorum"
+                    }
+                ]
+            }
+        ],
+        "schemaVersion": 41,
+        "version": 1
+    },
+    "folderId": 0,
+    "overwrite": true
+}

@@ -1,0 +1,62 @@
+{
+    "dashboard": {
+        "title": "Logs & Alerts",
+        "uid": "logs-alerts",
+        "panels": [
+            {
+                "type": "logs",
+                "title": "System Logs",
+                "targets": [
+                    {
+                        "expr": "{service_name=\"proxmox-server\",service_namespace=\"infrastructure\"}",
+                        "refId": "A"
+                    }
+                ]
+            },
+            {
+                "type": "logs",
+                "title": "Exporter Logs",
+                "targets": [
+                    {
+                        "expr": "{service_name=\"proxmox-otel-monitor\"}",
+                        "refId": "A"
+                    }
+                ]
+            },
+            {
+                "type": "stat",
+                "title": "Sensors Over 80°C (Count)",
+                "targets": [
+                    {
+                        "expr": "count(proxmox_temperature_celsius{temperature>80})",
+                        "legendFormat": "Sensors >80°C"
+                    }
+                ]
+            },
+            {
+                "type": "stat",
+                "title": "Unhealthy ZFS Pools (Count)",
+                "targets": [
+                    {
+                        "expr": "count(zfs_pool_health_status{health_text!=\"ONLINE\"})",
+                        "legendFormat": "Unhealthy ZFS Pools"
+                    }
+                ]
+            },
+            {
+                "type": "stat",
+                "title": "VMs Not Running (Count)",
+                "targets": [
+                    {
+                        "expr": "count(proxmox_vm_status{status!=1})",
+                        "legendFormat": "VMs Not Running"
+                    }
+                ]
+            }
+        ],
+        "schemaVersion": 41,
+        "version": 1
+    },
+    "folderId": 0,
+    "overwrite": true
+}

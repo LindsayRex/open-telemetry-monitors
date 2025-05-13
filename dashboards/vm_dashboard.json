@@ -1,0 +1,67 @@
+{
+    "dashboard": {
+        "title": "VM Dashboard",
+        "uid": "vm-dashboard",
+        "templating": {
+            "list": [
+                {
+                    "name": "vmid",
+                    "type": "query",
+                    "datasource": "prometheus",
+                    "query": "label_values(proxmox_vm_status, vmid)",
+                    "refresh": 1
+                },
+                {
+                    "name": "name",
+                    "type": "query",
+                    "datasource": "prometheus",
+                    "query": "label_values(proxmox_vm_status, name)",
+                    "refresh": 1
+                },
+                {
+                    "name": "type",
+                    "type": "query",
+                    "datasource": "prometheus",
+                    "query": "label_values(proxmox_vm_status, type)",
+                    "refresh": 1
+                }
+            ]
+        },
+        "panels": [
+            {
+                "type": "stat",
+                "title": "VM Status",
+                "targets": [
+                    {
+                        "expr": "proxmox_vm_status_state{vmid=~\"$vmid\"}",
+                        "legendFormat": "{{name}}"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "VM CPU Usage",
+                "targets": [
+                    {
+                        "expr": "proxmox_vm_cpu_usage_percent{vmid=~\"$vmid\"}",
+                        "legendFormat": "{{name}}"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "VM Memory Usage",
+                "targets": [
+                    {
+                        "expr": "proxmox_vm_memory_usage_percent{vmid=~\"$vmid\"}",
+                        "legendFormat": "{{name}}"
+                    }
+                ]
+            }
+        ],
+        "schemaVersion": 41,
+        "version": 1
+    },
+    "folderId": 0,
+    "overwrite": true
+}

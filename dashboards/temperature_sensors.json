@@ -1,0 +1,73 @@
+{
+    "dashboard": {
+        "title": "Temperature Sensors",
+        "uid": "temperature-sensors",
+        "templating": {
+            "list": [
+                {
+                    "name": "sensor",
+                    "type": "query",
+                    "datasource": "prometheus",
+                    "query": "label_values(proxmox_temperature_celsius, name)",
+                    "refresh": 1
+                }
+            ]
+        },
+        "panels": [
+            {
+                "type": "timeseries",
+                "title": "All Sensor Temperatures",
+                "targets": [
+                    {
+                        "expr": "proxmox_temperature_celsius{name=~\"$sensor\"}",
+                        "legendFormat": "{{name}}"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "CPU Core Temperatures",
+                "targets": [
+                    {
+                        "expr": "proxmox_temperature_celsius{source=\"cpu\",type=\"core\",name=~\"$sensor\"}",
+                        "legendFormat": "Core {{name}}"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "NVMe Temperatures",
+                "targets": [
+                    {
+                        "expr": "proxmox_temperature_celsius{source=\"nvme\",name=~\"$sensor\"}",
+                        "legendFormat": "NVMe {{name}}"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "Gigabyte WMI Sensors",
+                "targets": [
+                    {
+                        "expr": "proxmox_temperature_celsius{source=\"gigabyte_wmi\",name=~\"$sensor\"}",
+                        "legendFormat": "WMI {{name}}"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "ACPI/Other Sensors",
+                "targets": [
+                    {
+                        "expr": "proxmox_temperature_celsius{source=\"acpi\",name=~\"$sensor\"}",
+                        "legendFormat": "ACPI {{name}}"
+                    }
+                ]
+            }
+        ],
+        "schemaVersion": 41,
+        "version": 1
+    },
+    "folderId": 0,
+    "overwrite": true
+}
