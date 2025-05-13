@@ -1,0 +1,30 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true,
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            "**/venv": true
+        },
+        "python.analysis.extraPaths": [
+            "./proxmox"
+        ]
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.vscode-pylance",
+            "visualstudioexptteam.vscodeintellicode",
+            "coenraads.bracket-pair-colorizer-2",
+            "njpwerner.autodocstring"
+        ]
+    }
+}

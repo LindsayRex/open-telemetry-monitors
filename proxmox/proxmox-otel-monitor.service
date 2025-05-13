@@ -1,0 +1,17 @@
+[Unit]
+Description=Proxmox OpenTelemetry Monitoring Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/open-telemetry-monitors/proxmox
+EnvironmentFile=/opt/open-telemetry-monitors/proxmox/proxmox-otel.env
+ExecStart=/opt/open-telemetry-monitors/proxmox/venv/bin/python3 /opt/open-telemetry-monitors/proxmox/main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
