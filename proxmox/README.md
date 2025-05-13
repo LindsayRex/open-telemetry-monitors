@@ -9,12 +9,14 @@ A comprehensive monitoring solution for Proxmox VE servers using OpenTelemetry.
 - **Storage Monitoring**: Usage statistics and SMART disk health data
 - **Temperature Monitoring**: CPU core, NVMe drives, and other system temperatures
 - **Log Collection**: System logs and journal entries
+- **Modular Dashboards**: Grafana dashboards are split into focused JSON files for easier management and customization
 
 ## Prerequisites
 
 - Proxmox VE 7.0+
 - Python 3.10+
 - OpenTelemetry backend (like Grafana LGTM stack)
+- Grafana API token (see `../secrets.env`)
 
 ## Installation
 
@@ -40,6 +42,30 @@ A comprehensive monitoring solution for Proxmox VE servers using OpenTelemetry.
    sudo systemctl enable proxmox-otel-monitor.service
    sudo systemctl start proxmox-otel-monitor.service
    ```
+
+## Dashboard Management (Grafana)
+
+Dashboards are now modular and stored in the `../dashboards/` directory as individual JSON files:
+- `overview.json`
+- `node_details.json`
+- `vm_dashboard.json`
+- `storage_disk.json`
+- `temperature_sensors.json`
+- `logs_alerts.json`
+
+To (re)import all dashboards into Grafana:
+
+1. Ensure your Grafana API token is set in `../secrets.env` as `GRAFANA_API_TOKEN`.
+2. Run the import script:
+   ```bash
+   cd ../dashboards
+   chmod +x import_all_dashboards.sh
+   ./import_all_dashboards.sh
+   ```
+
+This will upload all dashboards to your Grafana instance at the configured URL (see script for details).
+
+You can also edit and import individual dashboard files as needed.
 
 ## Configuration
 
@@ -72,7 +98,7 @@ services:
       - loki-data:/var/lib/loki
       - tempo-data:/var/lib/tempo
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD={your_password}
     restart: unless-stopped
 
 volumes:
