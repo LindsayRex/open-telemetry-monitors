@@ -1,7 +1,20 @@
 {
+    "annotations": {
+        "list": [
+            {
+                "datasource": "prometheus",
+                "query": "proxmox_cluster_quorum",
+                "enable": true
+            }
+        ]
+    },
     "dashboard": {
         "title": "Proxmox Overview",
         "uid": "proxmox-overview",
+        "time": {
+            "from": "now-6h",
+            "to": "now"
+        },
         "links": [
             {
                 "title": "Node Details",
@@ -36,42 +49,140 @@
         ],
         "panels": [
             {
-                "type": "stat",
+                "type": "gauge",
                 "title": "Cluster CPU Usage",
+                "description": "Cluster CPU usage (%) averaged across nodes.",
+                "fieldConfig": {
+                    "unit": "percent",
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": 0
+                            },
+                            {
+                                "color": "red",
+                                "value": 90
+                            }
+                        ]
+                    }
+                },
                 "targets": [
                     {
-                        "expr": "proxmox_cpu_usage_percent",
+                        "expr": "avg(proxmox_cpu_usage_percent)",
                         "legendFormat": "CPU Usage"
+                    }
+                ],
+                "links": [
+                    {
+                        "title": "Node Details",
+                        "url": "/d/node-details"
                     }
                 ]
             },
             {
-                "type": "stat",
+                "type": "gauge",
                 "title": "Cluster Memory Usage",
+                "description": "Average memory usage across cluster (%).",
+                "fieldConfig": {
+                    "unit": "percent",
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": 0
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 70
+                            },
+                            {
+                                "color": "red",
+                                "value": 90
+                            }
+                        ]
+                    }
+                },
                 "targets": [
                     {
                         "expr": "proxmox_memory_usage_percent",
                         "legendFormat": "Memory Usage"
+                    }
+                ],
+                "links": [
+                    {
+                        "title": "Node Details",
+                        "url": "/d/node-details"
                     }
                 ]
             },
             {
                 "type": "stat",
                 "title": "Cluster Uptime",
+                "description": "Uptime of the cluster (seconds).",
+                "fieldConfig": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": 0
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 100000
+                            },
+                            {
+                                "color": "red",
+                                "value": 10000
+                            }
+                        ]
+                    }
+                },
                 "targets": [
                     {
                         "expr": "proxmox_node_uptime",
                         "legendFormat": "Uptime"
+                    }
+                ],
+                "links": [
+                    {
+                        "title": "Node Details",
+                        "url": "/d/node-details"
                     }
                 ]
             },
             {
                 "type": "stat",
                 "title": "Cluster Quorum",
+                "description": "Current cluster quorum status (1=quorum, 0=no quorum).",
+                "fieldConfig": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": 0
+                            },
+                            {
+                                "color": "green",
+                                "value": 1
+                            }
+                        ]
+                    }
+                },
                 "targets": [
                     {
                         "expr": "proxmox_cluster_quorum",
                         "legendFormat": "Quorum"
+                    }
+                ],
+                "links": [
+                    {
+                        "title": "Logs & Alerts",
+                        "url": "/d/logs-alerts"
                     }
                 ]
             }
@@ -80,5 +191,49 @@
         "version": 1
     },
     "folderId": 0,
-    "overwrite": true
+    "overwrite": true,
+    "links": [
+        {
+            "title": "Proxmox Overview",
+            "url": "/d/proxmox-overview",
+            "type": "dashboard",
+            "keepTime": true,
+            "includeVars": true
+        },
+        {
+            "title": "Node Details",
+            "url": "/d/node-details",
+            "type": "dashboard",
+            "keepTime": true,
+            "includeVars": true
+        },
+        {
+            "title": "VM Dashboard",
+            "url": "/d/vm-dashboard",
+            "type": "dashboard",
+            "keepTime": true,
+            "includeVars": true
+        },
+        {
+            "title": "Storage & Disk",
+            "url": "/d/storage-disk",
+            "type": "dashboard",
+            "keepTime": true,
+            "includeVars": true
+        },
+        {
+            "title": "Temperature Sensors",
+            "url": "/d/temperature-sensors",
+            "type": "dashboard",
+            "keepTime": true,
+            "includeVars": true
+        },
+        {
+            "title": "Logs & Alerts",
+            "url": "/d/logs-alerts",
+            "type": "dashboard",
+            "keepTime": true,
+            "includeVars": true
+        }
+    ]
 }

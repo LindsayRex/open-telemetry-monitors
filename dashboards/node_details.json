@@ -13,46 +13,133 @@
                 }
             ]
         },
+        "time": {
+            "from": "now-6h",
+            "to": "now"
+        },
         "panels": [
             {
-                "type": "timeseries",
-                "title": "CPU Usage (per core)",
-                "targets": [
+                "type": "row",
+                "title": "Node Metrics",
+                "collapsed": false,
+                "panels": [
                     {
-                        "expr": "proxmox_cpu_usage_percent{node=~\"$node\",core=~\".*\"}",
-                        "legendFormat": "Core {{core}}"
+                        "type": "timeseries",
+                        "title": "CPU Usage (per core)",
+                        "description": "Per-core CPU usage (%) for selected node.",
+                        "targets": [
+                            {
+                                "expr": "proxmox_cpu_usage_percent{node=~\"$node\",core=~\".*\"}",
+                                "legendFormat": "Core {{core}}"
+                            }
+                        ],
+                        "alert": {
+                            "conditions": [
+                                {
+                                    "evaluator": {
+                                        "type": "gt",
+                                        "params": [
+                                            90
+                                        ]
+                                    },
+                                    "query": {
+                                        "model": {
+                                            "expr": "proxmox_cpu_usage_percent{node=~\"$node\"}"
+                                        }
+                                    }
+                                }
+                            ],
+                            "for": "5m"
+                        }
+                    },
+                    {
+                        "type": "timeseries",
+                        "title": "Memory Usage",
+                        "description": "Memory usage (%) for selected node.",
+                        "targets": [
+                            {
+                                "expr": "proxmox_memory_usage_percent{node=~\"$node\"}",
+                                "legendFormat": "Memory Usage"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "stat",
+                        "title": "Uptime",
+                        "description": "Node uptime in seconds.",
+                        "targets": [
+                            {
+                                "expr": "proxmox_node_uptime{node=~\"$node\"}",
+                                "legendFormat": "Uptime"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "stat",
+                        "title": "Cluster Quorum",
+                        "description": "Cluster quorum status (1 = quorum, 0 = no quorum).",
+                        "targets": [
+                            {
+                                "expr": "proxmox_cluster_quorum",
+                                "legendFormat": "Quorum"
+                            }
+                        ]
                     }
                 ]
             },
             {
                 "type": "timeseries",
-                "title": "Memory Usage",
+                "title": "Network Usage (rate)",
+                "description": "Network bytes per second for selected node (rate over 5m).",
                 "targets": [
                     {
-                        "expr": "proxmox_memory_usage_percent{node=~\"$node\"}",
-                        "legendFormat": "Memory Usage"
+                        "expr": "rate(proxmox_network_bytes_total{node=~\"$node\"}[5m])",
+                        "legendFormat": "Interface {{interface}}"
                     }
                 ]
             },
             {
-                "type": "stat",
-                "title": "Uptime",
+                "type": "timeseries",
+                "title": "Power Usage (Watts)",
+                "description": "Power consumption in watts for selected node (if available).",
                 "targets": [
                     {
-                        "expr": "proxmox_node_uptime{node=~\"$node\"}",
-                        "legendFormat": "Uptime"
+                        "expr": "proxmox_power_consumption_watts{node=~\"$node\"}",
+                        "legendFormat": "Watts"
                     }
                 ]
+            }
+        ],
+        "links": [
+            {
+                "title": "Proxmox Overview",
+                "url": "/d/proxmox-overview",
+                "type": "dashboard"
             },
             {
-                "type": "stat",
-                "title": "Cluster Quorum",
-                "targets": [
-                    {
-                        "expr": "proxmox_cluster_quorum",
-                        "legendFormat": "Quorum"
-                    }
-                ]
+                "title": "Node Details",
+                "url": "/d/node-details",
+                "type": "dashboard"
+            },
+            {
+                "title": "VM Dashboard",
+                "url": "/d/vm-dashboard",
+                "type": "dashboard"
+            },
+            {
+                "title": "Storage & Disk",
+                "url": "/d/storage-disk",
+                "type": "dashboard"
+            },
+            {
+                "title": "Temperature Sensors",
+                "url": "/d/temperature-sensors",
+                "type": "dashboard"
+            },
+            {
+                "title": "Logs & Alerts",
+                "url": "/d/logs-alerts",
+                "type": "dashboard"
             }
         ],
         "schemaVersion": 41,

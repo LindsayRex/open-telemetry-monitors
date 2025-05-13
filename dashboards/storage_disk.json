@@ -2,6 +2,10 @@
     "dashboard": {
         "title": "Storage & Disk",
         "uid": "storage-disk",
+        "time": {
+            "from": "now-6h",
+            "to": "now"
+        },
         "templating": {
             "list": [
                 {
@@ -9,18 +13,27 @@
                     "type": "query",
                     "datasource": "prometheus",
                     "query": "label_values(zfs_pool_health_status, pool)",
-                    "refresh": 1
+                    "refresh": 1,
+                    "multi": true,
+                    "includeAll": true
                 },
                 {
                     "name": "device",
                     "type": "query",
                     "datasource": "prometheus",
                     "query": "label_values(proxmox_disk_io_read_bytes_total, device)",
-                    "refresh": 1
+                    "refresh": 1,
+                    "multi": true,
+                    "includeAll": true
                 }
             ]
         },
         "panels": [
+            {
+                "type": "row",
+                "title": "ZFS Metrics",
+                "collapsed": false
+            },
             {
                 "type": "stat",
                 "title": "ZFS Pool Health",
@@ -39,7 +52,25 @@
                         "expr": "zfs_pool_capacity_ratio{pool=~\"$pool\"}",
                         "legendFormat": "Pool: {{pool}}"
                     }
-                ]
+                ],
+                "alert": {
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "type": "gt",
+                                "params": [
+                                    0.9
+                                ]
+                            },
+                            "query": {
+                                "model": {
+                                    "expr": "zfs_pool_capacity_ratio{pool=~\"$pool\"}"
+                                }
+                            }
+                        }
+                    ],
+                    "for": "5m"
+                }
             },
             {
                 "type": "timeseries",
@@ -59,18 +90,36 @@
                         "expr": "zfs_pool_checksum_errors_total{pool=~\"$pool\"}",
                         "legendFormat": "Pool: {{pool}}"
                     }
-                ]
+                ],
+                "alert": {
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "type": "gt",
+                                "params": [
+                                    0
+                                ]
+                            },
+                            "query": {
+                                "model": {
+                                    "expr": "zfs_pool_checksum_errors_total{pool=~\"$pool\"}"
+                                }
+                            }
+                        }
+                    ],
+                    "for": "5m"
+                }
             },
             {
                 "type": "timeseries",
                 "title": "Disk I/O (Bytes)",
                 "targets": [
                     {
-                        "expr": "proxmox_disk_io_read_bytes_total{device=~\"$device\"}",
-                        "legendFormat": "Read: {{device}}"
+                        "expr": "rate(proxmox_disk_io_read_bytes_total{device=~\"$device\"}[5m])",
+                        "legendFormat": "Device {{device}}"
                     },
                     {
-                        "expr": "proxmox_disk_io_write_bytes_total{device=~\"$device\"}",
+                        "expr": "rate(proxmox_disk_io_write_bytes_total{device=~\"$device\"}[5m])",
                         "legendFormat": "Write: {{device}}"
                     }
                 ]
@@ -83,7 +132,54 @@
                         "expr": "proxmox_smart_attributes{device=~\"$device\"}",
                         "legendFormat": "{{attribute_name}} ({{type}})"
                     }
+                ],
+                "sort": {
+                    "col": 0,
+                    "desc": true
+                },
+                "styles": [
+                    {
+                        "pattern": "Value",
+                        "thresholds": [
+                            "100"
+                        ],
+                        "colors": [
+                            "red"
+                        ]
+                    }
                 ]
+            }
+        ],
+        "links": [
+            {
+                "title": "Proxmox Overview",
+                "url": "/d/proxmox-overview",
+                "type": "dashboard"
+            },
+            {
+                "title": "Node Details",
+                "url": "/d/node-details",
+                "type": "dashboard"
+            },
+            {
+                "title": "VM Dashboard",
+                "url": "/d/vm-dashboard",
+                "type": "dashboard"
+            },
+            {
+                "title": "Storage & Disk",
+                "url": "/d/storage-disk",
+                "type": "dashboard"
+            },
+            {
+                "title": "Temperature Sensors",
+                "url": "/d/temperature-sensors",
+                "type": "dashboard"
+            },
+            {
+                "title": "Logs & Alerts",
+                "url": "/d/logs-alerts",
+                "type": "dashboard"
             }
         ],
         "schemaVersion": 41,

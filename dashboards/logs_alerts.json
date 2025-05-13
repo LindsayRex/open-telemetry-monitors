@@ -2,23 +2,95 @@
     "dashboard": {
         "title": "Logs & Alerts",
         "uid": "logs-alerts",
+        "time": {
+            "from": "now-6h",
+            "to": "now"
+        },
+        "links": [
+            {
+                "title": "Proxmox UI",
+                "url": "https://192.168.0.110:8006/#v1:0:18:4:::::::"
+            },
+            {
+                "title": "Proxmox Overview",
+                "url": "/d/proxmox-overview",
+                "type": "dashboard"
+            },
+            {
+                "title": "Node Details",
+                "url": "/d/node-details",
+                "type": "dashboard"
+            },
+            {
+                "title": "VM Dashboard",
+                "url": "/d/vm-dashboard",
+                "type": "dashboard"
+            },
+            {
+                "title": "Storage & Disk",
+                "url": "/d/storage-disk",
+                "type": "dashboard"
+            },
+            {
+                "title": "Temperature Sensors",
+                "url": "/d/temperature-sensors",
+                "type": "dashboard"
+            },
+            {
+                "title": "Logs & Alerts",
+                "url": "/d/logs-alerts",
+                "type": "dashboard"
+            }
+        ],
         "panels": [
             {
                 "type": "logs",
                 "title": "System Logs",
                 "targets": [
                     {
-                        "expr": "{service_name=\"proxmox-server\",service_namespace=\"infrastructure\"}",
+                        "expr": "{service_name=\"proxmox-server\",service_namespace=\"infrastructure\",level=~\"error|warn\"}",
                         "refId": "A"
+                    }
+                ],
+                "links": [
+                    {
+                        "title": "Proxmox UI",
+                        "url": "https://192.168.0.110:8006/#v1:0:18:4:::::::"
                     }
                 ]
             },
             {
                 "type": "logs",
-                "title": "Exporter Logs",
+                "title": "Exporter Logs (Errors/Warnings)",
                 "targets": [
                     {
-                        "expr": "{service_name=\"proxmox-otel-monitor\"}",
+                        "expr": "{service_name=\"proxmox-otel-monitor\",level=~\"error|warn\"}",
+                        "refId": "A"
+                    }
+                ]
+            },
+            {
+                "type": "table",
+                "title": "Active Alerts",
+                "targets": [
+                    {
+                        "expr": "ALERTS{alertstate=\"firing\"}",
+                        "refId": "A"
+                    }
+                ],
+                "links": [
+                    {
+                        "title": "Source",
+                        "url": "{{ grafana_dashboard_url }}"
+                    }
+                ]
+            },
+            {
+                "type": "stat",
+                "title": "Backup Status",
+                "targets": [
+                    {
+                        "expr": "proxmox_backup_status or {job=\"backup\"}",
                         "refId": "A"
                     }
                 ]

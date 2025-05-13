@@ -2,6 +2,10 @@
     "dashboard": {
         "title": "Temperature Sensors",
         "uid": "temperature-sensors",
+        "time": {
+            "from": "now-6h",
+            "to": "now"
+        },
         "templating": {
             "list": [
                 {
@@ -9,7 +13,9 @@
                     "type": "query",
                     "datasource": "prometheus",
                     "query": "label_values(proxmox_temperature_celsius, name)",
-                    "refresh": 1
+                    "refresh": 1,
+                    "multi": true,
+                    "includeAll": true
                 }
             ]
         },
@@ -17,52 +23,132 @@
             {
                 "type": "timeseries",
                 "title": "All Sensor Temperatures",
+                "description": "All temperature sensors (multi-select enabled).",
                 "targets": [
                     {
                         "expr": "proxmox_temperature_celsius{name=~\"$sensor\"}",
-                        "legendFormat": "{{name}}"
+                        "legendFormat": "{{name}}",
+                        "maxDataPoints": 500
                     }
                 ]
             },
             {
                 "type": "timeseries",
                 "title": "CPU Core Temperatures",
+                "description": "CPU core temperatures in Celsius.",
                 "targets": [
                     {
                         "expr": "proxmox_temperature_celsius{source=\"cpu\",type=\"core\",name=~\"$sensor\"}",
-                        "legendFormat": "Core {{name}}"
+                        "legendFormat": "Core {{name}}",
+                        "maxDataPoints": 500
                     }
-                ]
+                ],
+                "alert": {
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "type": "gt",
+                                "params": [
+                                    85
+                                ]
+                            },
+                            "query": {
+                                "model": {
+                                    "expr": "proxmox_temperature_celsius{source=\"cpu\"}"
+                                }
+                            }
+                        }
+                    ],
+                    "for": "5m"
+                }
             },
             {
                 "type": "timeseries",
                 "title": "NVMe Temperatures",
+                "description": "NVMe drive temperatures in Celsius.",
                 "targets": [
                     {
                         "expr": "proxmox_temperature_celsius{source=\"nvme\",name=~\"$sensor\"}",
-                        "legendFormat": "NVMe {{name}}"
+                        "legendFormat": "NVMe {{name}}",
+                        "maxDataPoints": 500
                     }
                 ]
             },
             {
                 "type": "timeseries",
                 "title": "Gigabyte WMI Sensors",
+                "description": "Motherboard sensor temperatures (Gigabyte WMI).",
                 "targets": [
                     {
                         "expr": "proxmox_temperature_celsius{source=\"gigabyte_wmi\",name=~\"$sensor\"}",
-                        "legendFormat": "WMI {{name}}"
+                        "legendFormat": "WMI {{name}}",
+                        "maxDataPoints": 500
                     }
                 ]
             },
             {
                 "type": "timeseries",
                 "title": "ACPI/Other Sensors",
+                "description": "ACPI and other miscellaneous sensor temperatures.",
                 "targets": [
                     {
                         "expr": "proxmox_temperature_celsius{source=\"acpi\",name=~\"$sensor\"}",
-                        "legendFormat": "ACPI {{name}}"
+                        "legendFormat": "ACPI {{name}}",
+                        "maxDataPoints": 500
                     }
                 ]
+            },
+            {
+                "type": "heatmap",
+                "title": "Temperature Sensor Heatmap",
+                "description": "Heatmap of all temperature sensors.",
+                "targets": [
+                    {
+                        "expr": "proxmox_temperature_celsius{name=~\"$sensor\"}"
+                    }
+                ]
+            },
+            {
+                "type": "heatmap",
+                "title": "CPU Core Temperature Heatmap",
+                "description": "CPU core temperatures (°C).",
+                "targets": [
+                    {
+                        "expr": "proxmox_temperature_celsius{name=~\"$sensor\"}"
+                    }
+                ]
+            }
+        ],
+        "links": [
+            {
+                "title": "Proxmox Overview",
+                "url": "/d/proxmox-overview",
+                "type": "dashboard"
+            },
+            {
+                "title": "Node Details",
+                "url": "/d/node-details",
+                "type": "dashboard"
+            },
+            {
+                "title": "VM Dashboard",
+                "url": "/d/vm-dashboard",
+                "type": "dashboard"
+            },
+            {
+                "title": "Storage & Disk",
+                "url": "/d/storage-disk",
+                "type": "dashboard"
+            },
+            {
+                "title": "Temperature Sensors",
+                "url": "/d/temperature-sensors",
+                "type": "dashboard"
+            },
+            {
+                "title": "Logs & Alerts",
+                "url": "/d/logs-alerts",
+                "type": "dashboard"
             }
         ],
         "schemaVersion": 41,

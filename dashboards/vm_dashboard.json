@@ -1,7 +1,20 @@
 {
+    "annotations": {
+        "list": [
+            {
+                "datasource": "prometheus",
+                "query": "proxmox_vm_status_state",
+                "enable": true
+            }
+        ]
+    },
     "dashboard": {
         "title": "VM Dashboard",
         "uid": "vm-dashboard",
+        "time": {
+            "from": "now-6h",
+            "to": "now"
+        },
         "templating": {
             "list": [
                 {
@@ -9,58 +22,143 @@
                     "type": "query",
                     "datasource": "prometheus",
                     "query": "label_values(proxmox_vm_status, vmid)",
-                    "refresh": 1
+                    "refresh": 1,
+                    "multi": true,
+                    "includeAll": true
                 },
                 {
                     "name": "name",
                     "type": "query",
                     "datasource": "prometheus",
                     "query": "label_values(proxmox_vm_status, name)",
-                    "refresh": 1
+                    "refresh": 1,
+                    "multi": true,
+                    "includeAll": true
                 },
                 {
                     "name": "type",
                     "type": "query",
                     "datasource": "prometheus",
                     "query": "label_values(proxmox_vm_status, type)",
-                    "refresh": 1
+                    "refresh": 1,
+                    "multi": true,
+                    "includeAll": true
                 }
             ]
         },
         "panels": [
             {
-                "type": "stat",
+                "type": "gauge",
                 "title": "VM Status",
+                "description": "Current status of selected VMs (1=running, 0=stopped).",
+                "fieldConfig": {
+                    "unit": "percent"
+                },
                 "targets": [
                     {
                         "expr": "proxmox_vm_status_state{vmid=~\"$vmid\"}",
                         "legendFormat": "{{name}}"
                     }
+                ],
+                "links": [
+                    {
+                        "title": "View Logs",
+                        "url": "/d/logs-alerts"
+                    }
                 ]
             },
             {
-                "type": "timeseries",
+                "type": "gauge",
                 "title": "VM CPU Usage",
+                "description": "CPU usage for selected VMs (%).",
+                "fieldConfig": {
+                    "unit": "percent"
+                },
                 "targets": [
                     {
                         "expr": "proxmox_vm_cpu_usage_percent{vmid=~\"$vmid\"}",
                         "legendFormat": "{{name}}"
+                    }
+                ],
+                "links": [
+                    {
+                        "title": "View Logs",
+                        "url": "/d/logs-alerts"
                     }
                 ]
             },
             {
                 "type": "timeseries",
                 "title": "VM Memory Usage",
+                "description": "Memory usage for selected VMs (%).",
                 "targets": [
                     {
                         "expr": "proxmox_vm_memory_usage_percent{vmid=~\"$vmid\"}",
                         "legendFormat": "{{name}}"
                     }
                 ]
+            },
+            {
+                "type": "timeseries",
+                "title": "VM Disk I/O (Bytes)",
+                "description": "Disk I/O for selected VMs (read/write, 5m rate).",
+                "targets": [
+                    {
+                        "expr": "rate(proxmox_vm_disk_io_read_bytes_total{vmid=~\"$vmid\"}[5m])",
+                        "legendFormat": "Read: {{name}}"
+                    },
+                    {
+                        "expr": "rate(proxmox_vm_disk_io_write_bytes_total{vmid=~\"$vmid\"}[5m])",
+                        "legendFormat": "Write: {{name}}"
+                    }
+                ]
+            },
+            {
+                "type": "timeseries",
+                "title": "VM Disk I/O",
+                "description": "Disk I/O rate for selected VMs.",
+                "targets": [
+                    {
+                        "expr": "rate(proxmox_vm_disk_io_read_bytes_total{vmid=~\"$vmid\"}[5m])",
+                        "legendFormat": "VM {{vmid}}"
+                    }
+                ]
             }
         ],
         "schemaVersion": 41,
-        "version": 1
+        "version": 1,
+        "links": [
+            {
+                "title": "Proxmox Overview",
+                "url": "/d/proxmox-overview",
+                "type": "dashboard"
+            },
+            {
+                "title": "Node Details",
+                "url": "/d/node-details",
+                "type": "dashboard"
+            },
+            {
+                "title": "VM Dashboard",
+                "url": "/d/vm-dashboard",
+                "type": "dashboard"
+            },
+            {
+                "title": "Storage & Disk",
+                "url": "/d/storage-disk",
+                "type": "dashboard"
+            },
+            {
+                "title": "Temperature Sensors",
+                "url": "/d/temperature-sensors",
+                "type": "dashboard"
+            },
+            {
+                "title": "Logs & Alerts",
+                "url": "/d/logs-alerts",
+                "type": "dashboard"
+            }
+        ]
     },
     "folderId": 0,
     "overwrite": true
