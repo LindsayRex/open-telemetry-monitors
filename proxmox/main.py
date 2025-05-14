@@ -244,15 +244,15 @@ def setup_opentelemetry():
     # Dedicated disk I/O metric callbacks for each metric
     def proxmox_disk_io_read_bytes_total_callback(options):
         for device, metrics in collect_disk_io_data_raw().items():
-            logger.info(f"Yielding proxmox_disk_io_read_bytes_total: {metrics['bytes_read']}, {{device: {device}}}")
-            logger.debug(f"Yielding proxmox_disk_io_read_bytes_total Observation: value={metrics['bytes_read']}, labels={{'device': {device}}}")
-            yield Observation(metrics['bytes_read'], {"device": device})
+            mb_read = metrics['bytes_read'] / (1024 * 1024)
+            legend = f"Disk: {device} (Read MB)"
+            yield Observation(mb_read, {"device": device, "legend": legend, "metric": "read_megabytes_total"})
 
     def proxmox_disk_io_write_bytes_total_callback(options):
         for device, metrics in collect_disk_io_data_raw().items():
-            logger.info(f"Yielding proxmox_disk_io_write_bytes_total: {metrics['bytes_written']}, {{device: {device}}}")
-            logger.debug(f"Yielding proxmox_disk_io_write_bytes_total Observation: value={metrics['bytes_written']}, labels={{'device': {device}}}")
-            yield Observation(metrics['bytes_written'], {"device": device})
+            mb_written = metrics['bytes_written'] / (1024 * 1024)
+            legend = f"Disk: {device} (Write MB)"
+            yield Observation(mb_written, {"device": device, "legend": legend, "metric": "write_megabytes_total"})
 
     # Register each ZFS and disk I/O metric with its own callback
     created_instruments['zfs_pool_health_status'] = meter.create_observable_gauge(
@@ -304,16 +304,16 @@ def setup_opentelemetry():
         unit="operations"
     )
     created_instruments['proxmox_disk_io_read_bytes_total'] = meter.create_observable_counter(
-        name="proxmox_disk_io_read_bytes_total",
-        description="Total bytes read from disk - use rate() in queries",
+        name="proxmox_disk_io_read_megabytes_total",
+        description="Total megabytes read from disk - use rate() in queries",
         callbacks=[proxmox_disk_io_read_bytes_total_callback],
-        unit="bytes"
+        unit="MB"
     )
     created_instruments['proxmox_disk_io_write_bytes_total'] = meter.create_observable_counter(
-        name="proxmox_disk_io_write_bytes_total",
-        description="Total bytes written to disk - use rate() in queries",
+        name="proxmox_disk_io_write_megabytes_total",
+        description="Total megabytes written to disk - use rate() in queries",
         callbacks=[proxmox_disk_io_write_bytes_total_callback],
-        unit="bytes"
+        unit="MB"
     )
     
     # Add all observable instruments to metrics_dict for convenience

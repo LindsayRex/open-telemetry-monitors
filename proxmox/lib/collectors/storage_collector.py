@@ -65,25 +65,34 @@ def collect_storage_metrics(storage_status=None, storage_usage=None,
                             used_bytes = details.get('used', 0)
                             avail_bytes = details.get('avail', 0)
                             
+                            # Convert to MB (two decimal places)
+                            total_mb = round(total_bytes / (1024 * 1024), 2)
+                            used_mb = round(used_bytes / (1024 * 1024), 2)
+                            avail_mb = round(avail_bytes / (1024 * 1024), 2)
+                            
                             # Calculate percentage
-                            used_percent = (used_bytes / total_bytes) * 100 if total_bytes > 0 else 0
+                            used_percent = (used_mb / total_mb) * 100 if total_mb > 0 else 0
                             
                             storage_data['usage'] = {
-                                'total': total_bytes,
-                                'used': used_bytes,
-                                'avail': avail_bytes,
+                                'total_mb': total_mb,
+                                'used_mb': used_mb,
+                                'avail_mb': avail_mb,
                                 'percent': used_percent
                             }
                             
-                            # Send storage usage metrics
-                            if storage_usage:
-                                storage_usage.set(used_percent, storage_labels)
-                            if storage_total:
-                                storage_total.set(total_bytes, storage_labels)
-                            if storage_used:
-                                storage_used.set(used_bytes, storage_labels)
+                            # Update labels for MB
+                            mb_labels = dict(storage_labels)
+                            mb_labels['unit'] = 'MB'
                             
-                            logger.info(f"Storage {storage_id} ({storage_type}): {used_percent:.1f}% ({used_bytes/(1024**3):.1f}GB/{total_bytes/(1024**3):.1f}GB)")
+                            # Send storage usage metrics (all in MB)
+                            if storage_usage:
+                                storage_usage.set(used_percent, mb_labels)
+                            if storage_total:
+                                storage_total.set(total_mb, mb_labels)
+                            if storage_used:
+                                storage_used.set(used_mb, mb_labels)
+                            
+                            logger.info(f"Storage {storage_id} ({storage_type}): {used_percent:.1f}% ({used_mb:.2f}MB/{total_mb:.2f}MB)")
                         else:
                             logger.info(f"Storage {storage_id} ({storage_type}): no usage data available")
                         
@@ -168,14 +177,14 @@ def collect_disk_smart_metrics(smart_metrics=None):
                             "attribute_id": str(attr_id),
                             "attribute_name": attr_name_clean,
                         }
-                        
+                        legend = f"Disk: {disk} ({attr_name})"
                         # Send normalized value metric
                         if smart_metrics and attr_value is not None:
-                            smart_metrics.set(attr_value, dict(labels, **{"type": "normalized"}))
+                            smart_metrics.set(attr_value, dict(labels, **{"type": "normalized", "legend": legend, "metric": "normalized"}))
                         
                         # Send raw value metric for some useful attributes
                         if smart_metrics and attr_raw is not None:
-                            smart_metrics.set(attr_raw, dict(labels, **{"type": "raw"}))
+                            smart_metrics.set(attr_raw, dict(labels, **{"type": "raw", "legend": legend, "metric": "raw"}))
                 
                 # Process NVMe SMART attributes if available
                 elif "nvme_smart_health_information_log" in disk_smart:
@@ -191,24 +200,29 @@ def collect_disk_smart_metrics(smart_metrics=None):
                     
                     # Report key NVMe SMART attributes
                     if smart_metrics and "data_units_written" in nvme_log:
+                        legend = f"Disk: {disk} (NVMe Data Units Written)"
                         smart_metrics.set(nvme_log["data_units_written"], 
-                                        dict(labels_base, attribute_name="nvme_data_units_written", type="raw"))
+                                        dict(labels_base, attribute_name="nvme_data_units_written", type="raw", legend=legend, metric="nvme_data_units_written"))
                     
                     if smart_metrics and "data_units_read" in nvme_log:
+                        legend = f"Disk: {disk} (NVMe Data Units Read)"
                         smart_metrics.set(nvme_log["data_units_read"], 
-                                        dict(labels_base, attribute_name="nvme_data_units_read", type="raw"))
+                                        dict(labels_base, attribute_name="nvme_data_units_read", type="raw", legend=legend, metric="nvme_data_units_read"))
                     
                     if smart_metrics and "power_on_hours" in nvme_log:
+                        legend = f"Disk: {disk} (NVMe Power On Hours)"
                         smart_metrics.set(nvme_log["power_on_hours"], 
-                                        dict(labels_base, attribute_name="nvme_power_on_hours", type="raw"))
+                                        dict(labels_base, attribute_name="nvme_power_on_hours", type="raw", legend=legend, metric="nvme_power_on_hours"))
                     
                     if smart_metrics and "media_errors" in nvme_log:
+                        legend = f"Disk: {disk} (NVMe Media Errors)"
                         smart_metrics.set(nvme_log["media_errors"], 
-                                        dict(labels_base, attribute_name="nvme_media_errors", type="raw"))
+                                        dict(labels_base, attribute_name="nvme_media_errors", type="raw", legend=legend, metric="nvme_media_errors"))
                     
                     if smart_metrics and "critical_warning" in nvme_log:
+                        legend = f"Disk: {disk} (NVMe Critical Warning)"
                         smart_metrics.set(nvme_log["critical_warning"], 
-                                        dict(labels_base, attribute_name="nvme_critical_warning", type="raw"))
+                                        dict(labels_base, attribute_name="nvme_critical_warning", type="raw", legend=legend, metric="nvme_critical_warning"))
                     
                     # Store these values in our return structure too
                     for key, value in nvme_log.items():
@@ -230,7 +244,9 @@ def collect_disk_smart_metrics(smart_metrics=None):
                         "model": disk_model,
                         "serial": disk_serial,
                         "attribute_name": "temperature",
-                        "type": "raw"
+                        "type": "raw",
+                        "legend": f"Disk: {disk} (Temperature)",
+                        "metric": "temperature"
                     }
                     
                     # Send temperature as a separate metric
