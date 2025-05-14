@@ -8,6 +8,33 @@ import time
 from lib.config import logger
 from lib.utils import run_command
 
+# Helper to compute CPU usage from /proc/stat
+_prev_cpu_times = None
+def get_cpu_usage_proc_stat():
+    global _prev_cpu_times
+    try:
+        with open('/proc/stat', 'r') as f:
+            line = f.readline()
+            if not line.startswith('cpu '):
+                return 0
+            parts = line.strip().split()
+            # user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice
+            values = list(map(int, parts[1:]))
+            idle = values[3] + values[4] if len(values) > 4 else values[3]
+            total = sum(values)
+            if _prev_cpu_times is not None:
+                prev_idle, prev_total = _prev_cpu_times
+                delta_idle = idle - prev_idle
+                delta_total = total - prev_total
+                cpu_usage = 1.0 - (delta_idle / delta_total) if delta_total > 0 else 0
+            else:
+                cpu_usage = 0
+            _prev_cpu_times = (idle, total)
+            return cpu_usage * 100
+    except Exception as e:
+        logger.error(f"Error reading /proc/stat for CPU usage: {e}")
+        return 0
+
 def collect_system_metrics(cpu_usage=None, memory_usage=None, memory_total=None, 
                           memory_used=None, node_uptime=None, 
                           net_in_bytes=None, net_out_bytes=None):
@@ -70,7 +97,12 @@ def collect_system_metrics(cpu_usage=None, memory_usage=None, memory_total=None,
                 # CPU metrics
                 if 'cpu' in node_data:
                     cpu_data = node_data['cpu']
-                    cpu_usage_pct = cpu_data * 100 if isinstance(cpu_data, (int, float)) else 0
+                    # If Proxmox API returns 0, fallback to /proc/stat
+                    if cpu_data == 0:
+                        logger.warning("Proxmox API returned cpu=0, using /proc/stat fallback.")
+                        cpu_usage_pct = get_cpu_usage_proc_stat()
+                    else:
+                        cpu_usage_pct = cpu_data * 100 if isinstance(cpu_data, (int, float)) else 0
                     
                     system_metrics['cpu'] = {
                         'usage_percent': cpu_usage_pct

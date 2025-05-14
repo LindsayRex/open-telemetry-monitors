@@ -103,11 +103,6 @@ def setup_opentelemetry():
         ),
         
         # CPU metrics
-        'cpu_frequency': meter.create_gauge(
-            name="proxmox_cpu_frequency",
-            description="CPU frequency in MHz",
-            unit="MHz"
-        ),
         'cpu_usage': meter.create_gauge(
             name="proxmox_cpu_usage_percent",
             description="CPU usage percentage",
@@ -346,53 +341,6 @@ def log_collection_thread(logger_otel):
             logger.error(f"Error in log collection thread: {e}")
             time.sleep(10)  # Wait a bit before retrying
 
-def collect_cpu_frequency_metrics(cpu_frequency_gauge, logger_otel=None):
-    """Collect CPU frequency metrics."""
-    logger.info("Collecting CPU frequency metrics")
-    
-    try:
-        # Get CPU frequency scaling information
-        freq_info = {}
-        
-        # Read CPU frequency for each core
-        try:
-            import glob
-            import os
-            
-            # Find all CPU frequency files
-            cpu_freq_files = glob.glob('/sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq')
-            
-            for freq_file in cpu_freq_files:
-                try:
-                    # Extract CPU number from path
-                    cpu_num = int(freq_file.split('/cpu')[1].split('/')[0])
-                    
-                    # Read current frequency
-                    with open(freq_file, 'r') as f:
-                        # Frequency is in kHz, convert to MHz
-                        freq_khz = int(f.read().strip())
-                        freq_mhz = freq_khz / 1000
-                        
-                        # Store frequency
-                        freq_info[cpu_num] = freq_mhz
-                        
-                        # Set metric
-                        if cpu_frequency_gauge:
-                            cpu_frequency_gauge.set(freq_mhz, {
-                                "core": str(cpu_num)
-                            })
-                except (ValueError, IOError) as e:
-                    logger.error(f"Error reading CPU {cpu_num} frequency: {e}")
-            
-        except Exception as e:
-            logger.error(f"Error collecting CPU frequency metrics: {e}")
-        
-        return freq_info
-        
-    except Exception as e:
-        logger.error(f"Unexpected error while collecting CPU frequency metrics: {e}")
-        return {}
-
 def main():
     """Main function to run the monitoring script."""
     logger.info("Starting Proxmox OpenTelemetry Monitoring")
@@ -462,12 +410,6 @@ def main():
                 
                 # ZFS metrics are now collected via Observable instruments callbacks
                 # No need to call collect_zfs_pool_metrics() here
-                
-                # CPU frequency metrics collection disabled
-                # collect_cpu_frequency_metrics(
-                #     metrics_dict['cpu_frequency'],
-                #     logger_otel
-                # )
                 
                 logger.info(f"Metrics collected and sent to {OTEL_METRICS_ENDPOINT}")
                 if ENABLE_TRACES:

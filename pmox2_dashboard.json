@@ -24,31 +24,36 @@
       "title": "Node Overview",
       "url": "/d/node-overview",
       "icon": "dashboard",
-      "type": "link"
+      "type": "link",
+      "tooltip": "View node-specific metrics"
     },
     {
       "title": "VM Dashboard",
       "url": "/d/vm-dashboard",
       "icon": "dashboard",
-      "type": "link"
+      "type": "link",
+      "tooltip": "Monitor virtual machine performance"
     },
     {
       "title": "Storage & Disk",
       "url": "/d/storage-disk",
       "icon": "dashboard",
-      "type": "link"
+      "type": "link",
+      "tooltip": "ZFS pool and disk metrics"
     },
     {
       "title": "Temperature Sensors",
       "url": "/d/temperature-sensors",
       "icon": "dashboard",
-      "type": "link"
+      "type": "link",
+      "tooltip": "System temperature sensors"
     },
     {
       "title": "Logs & Alerts",
       "url": "/d/logs-alerts",
       "icon": "dashboard",
-      "type": "link"
+      "type": "link",
+      "tooltip": "System logs and alerts"
     }
   ],
   "panels": [
@@ -70,6 +75,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Average CPU usage across the Proxmox cluster (%)",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -112,17 +118,9 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "yellow",
-                "value": 80
-              },
-              {
-                "color": "red",
-                "value": 90
-              }
+              {"color": "green"},
+              {"color": "yellow", "value": 80},
+              {"color": "red", "value": 90}
             ]
           },
           "unit": "percent"
@@ -157,7 +155,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "proxmox_cpu_usage_percent",
+          "expr": "avg(proxmox_cpu_usage_percent{node=~\"$node\"})",
           "legendFormat": "CPU Usage",
           "range": true,
           "refId": "A"
@@ -171,6 +169,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Average memory usage across the Proxmox cluster (%)",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -213,17 +212,9 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "yellow",
-                "value": 80
-              },
-              {
-                "color": "red",
-                "value": 90
-              }
+              {"color": "green"},
+              {"color": "yellow", "value": 80},
+              {"color": "red", "value": 90}
             ]
           },
           "unit": "percent"
@@ -257,7 +248,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "proxmox_memory_usage_percent",
+          "expr": "avg(proxmox_memory_usage_percent{node=~\"$node\"})",
           "legendFormat": "Memory Usage",
           "refId": "A"
         }
@@ -270,6 +261,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Storage usage across the Proxmox cluster (%)",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -312,47 +304,14 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "yellow",
-                "value": 80
-              },
-              {
-                "color": "red",
-                "value": 90
-              }
+              {"color": "green"},
+              {"color": "yellow", "value": 80},
+              {"color": "red", "value": 90}
             ]
           },
           "unit": "percent"
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "Storage Usage"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -381,7 +340,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "proxmox_storage_usage_percent",
+          "expr": "avg(proxmox_storage_usage_percent)",
           "legendFormat": "Storage Usage",
           "refId": "A"
         }
@@ -394,6 +353,7 @@
         "type": "loki",
         "uid": "loki"
       },
+      "description": "System logs from Proxmox server",
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -453,34 +413,20 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Current status of virtual machines (Running or Stopped)",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "mappings": [
-            {
-              "options": {
-                "0": {
-                  "text": "Stopped"
-                },
-                "1": {
-                  "text": "Running"
-                }
-              },
-              "type": "value"
-            }
+            {"options": {"0": {"text": "Stopped"}, "1": {"text": "Running"}}, "type": "value"}
           ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "red"
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
+              {"color": "red"},
+              {"color": "green", "value": 1}
             ]
           }
         },
@@ -494,23 +440,8 @@
       },
       "id": 7,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "showHeader": true
       },
-      "pluginVersion": "11.6.0",
       "targets": [
         {
           "datasource": {
@@ -518,20 +449,22 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "proxmox_vm_status_state",
+          "expr": "proxmox_vm_status_state{vmid=~\"$vmid\"}",
           "legendFormat": "{{name}}",
+          "format": "table",
           "range": true,
           "refId": "A"
         }
       ],
       "title": "VM Status",
-      "type": "stat"
+      "type": "table"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "CPU usage of virtual machines (%)",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -574,17 +507,9 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "yellow",
-                "value": 80
-              },
-              {
-                "color": "red",
-                "value": 90
-              }
+              {"color": "green"},
+              {"color": "yellow", "value": 80},
+              {"color": "red", "value": 90}
             ]
           },
           "unit": "percent"
@@ -619,7 +544,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "proxmox_vm_cpu_usage_percent",
+          "expr": "proxmox_vm_cpu_usage_percent{vmid=~\"$vmid\"}",
           "legendFormat": "{{name}}",
           "range": true,
           "refId": "A"
@@ -646,6 +571,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Overall CPU temperature in Celsius",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -688,17 +614,9 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "yellow",
-                "value": 70
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
+              {"color": "green"},
+              {"color": "yellow", "value": 70},
+              {"color": "red", "value": 80}
             ]
           },
           "unit": "celsius"
@@ -732,7 +650,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "proxmox_temperature_celsius",
+          "expr": "proxmox_temperature_celsius{source!=\"cpu\",source!=\"nvme\"}",
           "legendFormat": "Temperature",
           "refId": "A"
         }
@@ -745,6 +663,217 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Temperature distribution across CPU cores in Celsius",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "yellow", "value": 70},
+              {"color": "red", "value": 80}
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 27
+      },
+      "id": 11,
+      "options": {
+        "calculate": false,
+        "cellHeight": 50,
+        "color": {
+          "exponent": 0.5,
+          "fill": "dark-orange",
+          "mode": "spectrum",
+          "reverse": false,
+          "scale": "exponential",
+          "scheme": "Spectral",
+          "steps": 64
+        },
+        "exemplars": {
+          "color": "rgba(255,0,255,0.7)"
+        },
+        "filterValues": {
+          "le": 1e-09
+        },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "rowsFrame": {
+          "layout": "auto"
+        },
+        "tooltip": {
+          "show": true,
+          "yHistogram": false
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "decimals": 0,
+          "reverse": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "proxmox_temperature_celsius{source=\"cpu\",type=\"core\",name=~\"$sensor\"}",
+          "legendFormat": "Core {{name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "CPU Core Temperatures",
+      "type": "heatmap"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "id": 16,
+      "panels": [],
+      "title": "Logs",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Critical logs (errors and warnings) from Proxmox server",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "id": 18,
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": true,
+        "prettified": false,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLines": false,
+        "wrapLogMessage": false
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "{service_name=\"proxmox-server\",service_namespace=\"infrastructure\"} |~ \"error|warn\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Alerts",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "id": 20,
+      "panels": [],
+      "title": "ZFS Pools",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Health status of ZFS pools",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [
+            {"options": {"0": {"text": "Degraded"}, "1": {"text": "Online"}}, "type": "value"}
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red"},
+              {"color": "green", "value": 1}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 45
+      },
+      "id": 21,
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        }
+      },
+      "targets": [
+        {
+          "expr": "zfs_pool_health_status{pool=~\"$pool\"}",
+          "legendFormat": "Pool: {{pool}} ({{health_text}})",
+          "refId": "A"
+        }
+      ],
+      "title": "ZFS Pool Health",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Capacity usage of ZFS pools (%)",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -787,30 +916,22 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "yellow",
-                "value": 70
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
+              {"color": "green"},
+              {"color": "yellow", "value": 80},
+              {"color": "red", "value": 90}
             ]
           },
-          "unit": "celsius"
+          "unit": "percent"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 27
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 45
       },
-      "id": 11,
+      "id": 22,
       "options": {
         "legend": {
           "calcs": [],
@@ -824,160 +945,9 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.6.0",
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "proxmox_temperature_celsius{source=\"cpu\",type=\"core\"}",
-          "legendFormat": "Core {{name}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "CPU Core Temperatures",
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 35
-      },
-      "id": 16,
-      "panels": [],
-      "title": "Logs",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 36
-      },
-      "id": 18,
-      "options": {
-        "dedupStrategy": "none",
-        "enableInfiniteScrolling": false,
-        "enableLogDetails": true,
-        "prettified": false,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLines": false,
-        "wrapLogMessage": false
-      },
-      "pluginVersion": "11.6.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "direction": "backward",
-          "editorMode": "code",
-          "expr": "{service_name=\"proxmox-server\",service_namespace=\"infrastructure\"}",
-          "queryType": "range",
-          "refId": "A"
-        }
-      ],
-      "title": "Alerts",
-      "type": "logs"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 37
-      },
-      "id": 20,
-      "panels": [],
-      "title": "ZFS Pools",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 8,
-        "x": 0,
-        "y": 38
-      },
-      "id": 21,
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "targets": [
-        {
-          "expr": "zfs_pool_health_status{pool=~\"fastz|mediumz\"}",
-          "legendFormat": "Pool: {{pool}} ({{health_text}})",
-          "refId": "A"
-        }
-      ],
-      "title": "ZFS Pool Health",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 8,
-        "x": 8,
-        "y": 38
-      },
-      "id": 22,
-      "options": {
-        "legend": {
-          "showLegend": true
-        }
-      },
-      "targets": [
-        {
-          "expr": "zfs_pool_capacity_ratio{pool=~\"fastz|mediumz\"}",
+          "expr": "zfs_pool_capacity_ratio{pool=~\"$pool\"} * 100",
           "legendFormat": "Pool: {{pool}}",
           "refId": "A"
         }
@@ -990,11 +960,55 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Fragmentation level of ZFS pools (%)",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "yellow", "value": 50},
+              {"color": "red", "value": 70}
+            ]
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -1002,17 +1016,25 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 38
+        "y": 45
       },
       "id": 23,
       "options": {
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
         {
-          "expr": "zfs_pool_fragmentation_ratio{pool=~\"fastz|mediumz\"}",
+          "expr": "zfs_pool_fragmentation_ratio{pool=~\"$pool\"} * 100",
           "legendFormat": "Pool: {{pool}}",
           "refId": "A"
         }
@@ -1025,10 +1047,52 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Total checksum errors in ZFS pools",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "red", "value": 1}
+            ]
           }
         },
         "overrides": []
@@ -1037,17 +1101,25 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 42
+        "y": 49
       },
       "id": 24,
       "options": {
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
         {
-          "expr": "zfs_pool_checksum_errors_total{pool=~\"fastz|mediumz\"}",
+          "expr": "zfs_pool_checksum_errors_total{pool=~\"$pool\"}",
           "legendFormat": "Pool: {{pool}}",
           "refId": "A"
         }
@@ -1061,7 +1133,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 53
       },
       "id": 25,
       "panels": [],
@@ -1073,11 +1145,53 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Disk I/O read and write rates (bytes/s)",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"}
+            ]
+          },
+          "unit": "Bps"
         },
         "overrides": []
       },
@@ -1085,27 +1199,35 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 47
+        "y": 54
       },
       "id": 26,
       "options": {
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
         {
-          "expr": "proxmox_disk_io_read_bytes_total{device=~\"nvme1n1|nvme0n1|sda|sdb\"}",
+          "expr": "rate(proxmox_disk_io_read_bytes_total{device=~\"$device\"}[5m])",
           "legendFormat": "Read: {{device}}",
           "refId": "A"
         },
         {
-          "expr": "proxmox_disk_io_write_bytes_total{device=~\"nvme1n1|nvme0n1|sda|sdb\"}",
+          "expr": "rate(proxmox_disk_io_write_bytes_total{device=~\"$device\"}[5m])",
           "legendFormat": "Write: {{device}}",
           "refId": "B"
         }
       ],
-      "title": "Disk I/O (Bytes)",
+      "title": "Disk I/O (Bytes/s)",
       "type": "timeseries"
     },
     {
@@ -1113,6 +1235,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "SMART attributes for disk health monitoring",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1125,16 +1248,18 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 47
+        "y": 54
       },
       "id": 27,
       "options": {
-        "showHeader": true
+        "showHeader": true,
+        "sort": {"col": 0, "desc": true}
       },
       "targets": [
         {
-          "expr": "proxmox_smart_attributes{device=~\"nvme1n1|nvme0n1|sda|sdb\"}",
+          "expr": "proxmox_smart_attributes{device=~\"$device\"}",
           "legendFormat": "{{attribute_name}} ({{type}})",
+          "format": "table",
           "refId": "A"
         }
       ],
@@ -1147,7 +1272,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 51
+        "y": 58
       },
       "id": 28,
       "panels": [],
@@ -1159,11 +1284,55 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Temperatures from all system sensors in Celsius",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "yellow", "value": 70},
+              {"color": "red", "value": 80}
+            ]
+          },
+          "unit": "celsius"
         },
         "overrides": []
       },
@@ -1171,17 +1340,25 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 52
+        "y": 59
       },
       "id": 29,
       "options": {
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
         {
-          "expr": "proxmox_temperature_celsius{name=~\"CPU Package 0|CPU Core 0|CPU Core 4|CPU Core 8|CPU Core 12|CPU Core 16|CPU Core 20|CPU Core 24|CPU Core 28|CPU Core 36|CPU Core 37|CPU Core 38|CPU Core 39|nvme_pci_0300 Composite|nvme_pci_0300 Sensor 1|nvme_pci_0300 Sensor 2|nvme_pci_0200 Composite|ACPI temp1|ACPI temp2|System2|PCH|CPU_Socket|PCIEX16_Slot|PCIEX4_Slot|VRM_MOS\"}",
+          "expr": "proxmox_temperature_celsius{name=~\"$sensor\"}",
           "legendFormat": "{{name}}",
           "refId": "A"
         }
@@ -1194,11 +1371,29 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Temperature distribution across CPU cores in Celsius",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "yellow", "value": 70},
+              {"color": "red", "value": 80}
+            ]
+          },
+          "unit": "celsius"
         },
         "overrides": []
       },
@@ -1206,12 +1401,44 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 52
+        "y": 59
       },
       "id": 30,
       "options": {
+        "calculate": false,
+        "cellHeight": 50,
+        "color": {
+          "exponent": 0.5,
+          "fill": "dark-orange",
+          "mode": "spectrum",
+          "reverse": false,
+          "scale": "exponential",
+          "scheme": "Spectral",
+          "steps": 64
+        },
+        "exemplars": {
+          "color": "rgba(255,0,255,0.7)"
+        },
+        "filterValues": {
+          "le": 1e-09
+        },
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        },
+        "rowsFrame": {
+          "layout": "auto"
+        },
+        "tooltip": {
+          "show": true,
+          "yHistogram": false
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "decimals": 0,
+          "reverse": false
         }
       },
       "targets": [
@@ -1222,18 +1449,62 @@
         }
       ],
       "title": "CPU Core Temperatures",
-      "type": "timeseries"
+      "type": "heatmap"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "NVMe drive temperatures in Celsius",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "yellow", "value": 70},
+              {"color": "red", "value": 80}
+            ]
+          },
+          "unit": "celsius"
         },
         "overrides": []
       },
@@ -1241,12 +1512,20 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 52
+        "y": 59
       },
       "id": 31,
       "options": {
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
@@ -1265,7 +1544,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 56
+        "y": 63
       },
       "id": 32,
       "panels": [],
@@ -1277,10 +1556,21 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Current status of virtual machines",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
+          },
+          "mappings": [
+            {"options": {"0": {"text": "Stopped"}, "1": {"text": "Running"}}, "type": "value"}
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red"},
+              {"color": "green", "value": 1}
+            ]
           }
         },
         "overrides": []
@@ -1289,19 +1579,17 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 57
+        "y": 64
       },
       "id": 33,
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
+          "calcs": ["lastNotNull"]
         }
       },
       "targets": [
         {
-          "expr": "proxmox_vm_status{vmid=~\"$vmid\"}",
+          "expr": "proxmox_vm_status_state{vmid=~\"$vmid\"}",
           "legendFormat": "VM: {{name}} ({{type}})",
           "refId": "A"
         }
@@ -1314,11 +1602,55 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "CPU usage of virtual machines (%)",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "yellow", "value": 80},
+              {"color": "red", "value": 90}
+            ]
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -1326,17 +1658,25 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 57
+        "y": 64
       },
       "id": 34,
       "options": {
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
         {
-          "expr": "proxmox_vm_cpu_usage{vmid=~\"$vmid\"}",
+          "expr": "proxmox_vm_cpu_usage_percent{vmid=~\"$vmid\"}",
           "legendFormat": "VM: {{name}} CPU",
           "refId": "A"
         }
@@ -1349,11 +1689,55 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Memory usage of virtual machines (%)",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "yellow", "value": 80},
+              {"color": "red", "value": 90}
+            ]
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -1361,17 +1745,25 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 57
+        "y": 64
       },
       "id": 35,
       "options": {
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
         {
-          "expr": "proxmox_vm_memory_usage{vmid=~\"$vmid\"}",
+          "expr": "proxmox_vm_memory_usage_percent{vmid=~\"$vmid\"}",
           "legendFormat": "VM: {{name}} Mem",
           "refId": "A"
         }
@@ -1385,7 +1777,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 61
+        "y": 68
       },
       "id": 36,
       "panels": [],
@@ -1397,11 +1789,55 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "CPU usage of selected nodes (%)",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "yellow", "value": 80},
+              {"color": "red", "value": 90}
+            ]
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -1409,12 +1845,20 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 62
+        "y": 69
       },
       "id": 37,
       "options": {
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
@@ -1432,11 +1876,55 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Memory usage of selected nodes (%)",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "yellow", "value": 80},
+              {"color": "red", "value": 90}
+            ]
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -1444,17 +1932,25 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 62
+        "y": 69
       },
       "id": 38,
       "options": {
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
         {
-          "expr": "proxmox_memory_usage{node=~\"$node\"}",
+          "expr": "proxmox_memory_usage_percent{node=~\"$node\"}",
           "legendFormat": "Node: {{node}} Mem",
           "refId": "A"
         }
@@ -1467,11 +1963,53 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Uptime of selected nodes in seconds",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"}
+            ]
+          },
+          "unit": "s"
         },
         "overrides": []
       },
@@ -1479,12 +2017,20 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 62
+        "y": 69
       },
       "id": 39,
       "options": {
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
@@ -1503,7 +2049,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 66
+        "y": 73
       },
       "id": 40,
       "panels": [],
@@ -1515,10 +2061,19 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Count of unhealthy ZFS pools",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "red", "value": 1}
+            ]
           }
         },
         "overrides": []
@@ -1527,14 +2082,12 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 67
+        "y": 74
       },
       "id": 41,
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
+          "calcs": ["lastNotNull"]
         }
       },
       "targets": [
@@ -1552,10 +2105,19 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Count of sensors exceeding 80°C",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "red", "value": 1}
+            ]
           }
         },
         "overrides": []
@@ -1564,14 +2126,12 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 67
+        "y": 74
       },
       "id": 42,
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
+          "calcs": ["lastNotNull"]
         }
       },
       "targets": [
@@ -1589,10 +2149,19 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
+      "description": "Count of VMs not running",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "red", "value": 1}
+            ]
           }
         },
         "overrides": []
@@ -1601,19 +2170,17 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 67
+        "y": 74
       },
       "id": 43,
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
+          "calcs": ["lastNotNull"]
         }
       },
       "targets": [
         {
-          "expr": "count(proxmox_vm_status{status!=1})",
+          "expr": "count(proxmox_vm_status_state{status!=1})",
           "legendFormat": "VMs Not Running",
           "refId": "A"
         }
@@ -1625,43 +2192,68 @@
   "preload": false,
   "refresh": "1m",
   "schemaVersion": 41,
-  "tags": [],
+  "tags": ["proxmox", "overview"],
   "templating": {
     "list": [
       {
         "name": "node",
         "type": "query",
-        "datasource": "prometheus",
-        "query": "label_values(node)",
-        "refresh": 1
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(proxmox_cpu_usage_percent, node)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true
       },
       {
         "name": "vmid",
         "type": "query",
-        "datasource": "prometheus",
-        "query": "label_values(proxmox_vm_status, vmid)",
-        "refresh": 1
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(proxmox_vm_status_state, vmid)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true
       },
       {
         "name": "pool",
         "type": "query",
-        "datasource": "prometheus",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "query": "label_values(zfs_pool_health_status, pool)",
-        "refresh": 1
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true
       },
       {
         "name": "device",
         "type": "query",
-        "datasource": "prometheus",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "query": "label_values(proxmox_disk_io_read_bytes_total, device)",
-        "refresh": 1
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true
       },
       {
         "name": "sensor",
         "type": "query",
-        "datasource": "prometheus",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "query": "label_values(proxmox_temperature_celsius, name)",
-        "refresh": 1
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true
       },
       {
         "baseFilters": [],
@@ -1676,7 +2268,7 @@
     ]
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {
@@ -1689,8 +2281,8 @@
     ]
   },
   "timezone": "browser",
-  "title": "pmox dashboard",
+  "title": "Proxmox Overview Dashboard",
   "uid": "felq3yxcfa9z4d",
-  "version": 12,
+  "version": 13,
   "weekStart": "monday"
 }
