@@ -192,63 +192,54 @@ def setup_opentelemetry():
         ),
     }
     
-    # Dedicated ZFS metric callbacks for each metric
+    # Dedicated ZFS metric callbacks for each metric, now with explicit 'metric' label for context
     def zfs_pool_health_status_callback(options):
         for pool, metrics in collect_zfs_pool_metrics().items():
             health_value = metrics.get('health_value', 0)
             health_text = str(metrics.get('health', 'UNKNOWN'))
-            logger.info(f"Yielding zfs_pool_health_status: {health_value}, {{pool: {pool}, health_text: {health_text}}}")
-            logger.debug(f"Yielding zfs_pool_health_status Observation: value={health_value}, labels={{'pool': {pool}, 'health_text': {health_text}}}")
-            yield Observation(health_value, {"pool": pool, "health_text": health_text})
+            # Add a more descriptive label for Grafana legend and Prometheus context
+            legend = f"Pool: {pool} (Health: {health_text})"
+            yield Observation(health_value, {
+                "pool": pool,
+                "legend": legend,
+                "health_text": health_text,
+                "metric": "health_status"
+            })
 
     def zfs_pool_capacity_ratio_callback(options):
         for pool, metrics in collect_zfs_pool_metrics().items():
             capacity = metrics.get('capacity', 0.0)
-            logger.info(f"Yielding zfs_pool_capacity_ratio: {capacity}, {{pool: {pool}}}")
-            logger.debug(f"Yielding zfs_pool_capacity_ratio Observation: value={capacity}, labels={{'pool': {pool}}}")
-            yield Observation(capacity, {"pool": pool})
+            yield Observation(capacity, {"pool": pool, "metric": "capacity_percent"})
 
     def zfs_pool_fragmentation_ratio_callback(options):
         for pool, metrics in collect_zfs_pool_metrics().items():
             fragmentation = metrics.get('fragmentation', 0.0)
-            logger.info(f"Yielding zfs_pool_fragmentation_ratio: {fragmentation}, {{pool: {pool}}}")
-            logger.debug(f"Yielding zfs_pool_fragmentation_ratio Observation: value={fragmentation}, labels={{'pool': {pool}}}")
-            yield Observation(fragmentation, {"pool": pool})
+            yield Observation(fragmentation, {"pool": pool, "metric": "fragmentation_percent"})
 
     def zfs_pool_checksum_errors_total_callback(options):
         for pool, metrics in collect_zfs_pool_metrics().items():
             checksum_errors = metrics.get('checksum_errors', 0)
-            logger.info(f"Yielding zfs_pool_checksum_errors_total: {checksum_errors}, {{pool: {pool}}}")
-            logger.debug(f"Yielding zfs_pool_checksum_errors_total Observation: value={checksum_errors}, labels={{'pool': {pool}}}")
-            yield Observation(checksum_errors, {"pool": pool})
+            yield Observation(checksum_errors, {"pool": pool, "metric": "checksum_errors_total"})
 
     def zfs_pool_read_bytes_total_callback(options):
         for pool, metrics in collect_zfs_pool_metrics().items():
             read_bytes = metrics.get('read_bytes', 0)
-            logger.info(f"Yielding zfs_pool_read_bytes_total: {read_bytes}, {{pool: {pool}}}")
-            logger.debug(f"Yielding zfs_pool_read_bytes_total Observation: value={read_bytes}, labels={{'pool': {pool}}}")
-            yield Observation(read_bytes, {"pool": pool})
+            yield Observation(read_bytes, {"pool": pool, "metric": "read_bytes_total"})
 
     def zfs_pool_write_bytes_total_callback(options):
         for pool, metrics in collect_zfs_pool_metrics().items():
             write_bytes = metrics.get('write_bytes', 0)
-            logger.info(f"Yielding zfs_pool_write_bytes_total: {write_bytes}, {{pool: {pool}}}")
-            logger.debug(f"Yielding zfs_pool_write_bytes_total Observation: value={write_bytes}, labels={{'pool': {pool}}}")
-            yield Observation(write_bytes, {"pool": pool})
+            yield Observation(write_bytes, {"pool": pool, "metric": "write_bytes_total"})
 
     def zfs_pool_read_ops_total_callback(options):
         for pool, metrics in collect_zfs_pool_metrics().items():
             read_ops = metrics.get('read_ops', 0)
-            logger.info(f"Yielding zfs_pool_read_ops_total: {read_ops}, {{pool: {pool}}}")
-            logger.debug(f"Yielding zfs_pool_read_ops_total Observation: value={read_ops}, labels={{'pool': {pool}}}")
-            yield Observation(read_ops, {"pool": pool})
+            yield Observation(read_ops, {"pool": pool, "metric": "read_ops_total"})
 
     def zfs_pool_write_ops_total_callback(options):
         for pool, metrics in collect_zfs_pool_metrics().items():
             write_ops = metrics.get('write_ops', 0)
-            logger.info(f"Yielding zfs_pool_write_ops_total: {write_ops}, {{pool: {pool}}}")
-            logger.debug(f"Yielding zfs_pool_write_ops_total Observation: value={write_ops}, labels={{'pool': {pool}}}")
-            yield Observation(write_ops, {"pool": pool})
+            yield Observation(write_ops, {"pool": pool, "metric": "write_ops_total"})
 
     # Dedicated disk I/O metric callbacks for each metric
     def proxmox_disk_io_read_bytes_total_callback(options):
